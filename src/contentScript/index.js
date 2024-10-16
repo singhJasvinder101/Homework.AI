@@ -4,6 +4,8 @@ import Tesseract from 'tesseract.js';
 import './content.css';
 import '../components/AnswerPopup/index.css';
 
+
+// TODO: APi url change
 const apiUri = 'http://127.0.0.1:5000/generate_answer'; 
 let popupContainer = null;
 
