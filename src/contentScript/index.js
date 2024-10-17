@@ -6,7 +6,9 @@ import '../components/AnswerPopup/index.css';
 
 
 // TODO: APi url change
-const apiUri = 'http://127.0.0.1:5000/generate_answer'; 
+
+const apiUri = 'https://op-answers.vercel.app/generate_answer'
+// const apiUri = 'http://127.0.0.1:5000/generate_answer'
 let popupContainer = null;
 
 let isScanning = false;
@@ -24,6 +26,14 @@ const createElement = (tag, className, content = '') => {
     return element;
 };
 
+const handleCross = (popupContainer) => { 
+    const crossIcon = popupContainer.querySelector('.cross-icon');
+    crossIcon.addEventListener('click', () => {
+        document.body.removeChild(popupContainer);
+        popupContainer = null;
+    });
+}
+
 const renderPopup = (position, ocrResult = '', isSubmitting = false, isScanning = false, ocrProgress = 0) => {
     if (!popupContainer) return;
     isRendered = true;
@@ -31,7 +41,7 @@ const renderPopup = (position, ocrResult = '', isSubmitting = false, isScanning 
     console.log("Rendering popup...");
     popupContainer.innerHTML = '';
 
-    const header = createElement('header', 'popup-header', '<h1>Homework AI</h1>');
+    const header = createElement('header', 'popup-header', '<h1>Homework AI</h1><span class="cross-icon">x</span>');
     const main = createElement('main', 'popup-content');
 
     const inputContainer = createElement('div', 'input-container');
@@ -42,7 +52,7 @@ const renderPopup = (position, ocrResult = '', isSubmitting = false, isScanning 
         question = e.target.value;
     });
 
-    const submitButton = createElement('button', 'icon-button', isSubmitting ? 'Submitting...' : 'Submit');
+    const submitButton = createElement('button', 'icon-button', isSubmitting ? 'wait..' : 'Go');
     submitButton.disabled = isSubmitting;
     submitButton.addEventListener('click', handleSubmitQuestion);
 
@@ -57,18 +67,16 @@ const renderPopup = (position, ocrResult = '', isSubmitting = false, isScanning 
     main.appendChild(inputContainer);
     main.appendChild(ocrButton);
 
-    const progressBarContainer = createElement('div', 'progress-bar-container');
-    const progressBar = createElement('div', 'progress-bar');
-    progressBar.style.width = `${ocrProgress}%`;
-    progressBarContainer.appendChild(progressBar);
-    main.appendChild(progressBarContainer);
 
     if (ocrResult) {
-        const resultDiv = createElement('div', 'ocr-result', `<h2>Scanned Text:</h2><p>${ocrResult}</p>`);
+        const resultDiv = createElement('div', 'ocr-result', `<h2 class="answer-heading">ANSWER <span class="level">${ocrResult.split('Level:')[1]}</span></h2><p>${ocrResult.split('Level:')[0]}</p>`);
         main.appendChild(resultDiv);
     }
 
     popupContainer.appendChild(main);
+
+
+    handleCross(popupContainer);
 };
 
 const handleStartOCR = () => {
@@ -120,11 +128,14 @@ const createPopupContainer = (position) => {
     popupContainer.style.position = 'absolute';
     popupContainer.style.top = `${correctedY}px`;
     popupContainer.style.left = `${correctedX}px`;
-    popupContainer.style.height = `100px`;
     popupContainer.style.zIndex = 1000000000;
     popupContainer.style.width = `300px`;
+    popupContainer.style.backgroundColor = `white`;
+    popupContainer.style.padding = `20px`;
+    popupContainer.style.borderRadius = `1rem`;
     document.body.appendChild(popupContainer);
 };
+
 
 
 // Selection Overlay logic
@@ -176,6 +187,10 @@ const handleMouseDown = (e) => {
     startPoint = { x: e.clientX, y: e.clientY };
     selectionBox = { x: startPoint.x, y: startPoint.y, width: 0, height: 0 };
     updateSelectionElement();
+
+    if (popupContainer) {
+        popupContainer.style.visibility = 'hidden';
+    }
 };
 
 const handleMouseMove = (e) => {
@@ -196,6 +211,8 @@ const updateSelectionElement = () => {
         selectionElement.style.width = `${selectionBox.width}px`;
         selectionElement.style.height = `${selectionBox.height}px`;
     }
+
+    popupContainer.style.zIndex = -1000000000;
 };
 
 const handleMouseUp = async (e) => {
@@ -212,6 +229,9 @@ const handleMouseUp = async (e) => {
     if (selectionElement) {
         document.body.removeChild(selectionElement);
         selectionElement = null;
+    }
+    if (popupContainer) {
+        popupContainer.style.visibility = 'visible';
     }
 
     try {
