@@ -63,13 +63,16 @@
 }
 
 .popup-container {
-  animation: fadeIn 0.5s ease-out;
-  background-color: var(--background-color);
-  box-shadow: 0 10px 20px var(--shadow-color);
-  border-radius: 20px;
-  overflow: hidden;
-  padding: 24px;
-  z-index: 10000000000;
+  animation: fadeIn 0.5s ease-out !important;
+  background-color: var(--background-color) !important;
+  box-shadow: 0 10px 20px var(--shadow-color) !important;
+  border-radius: 20px !important;
+  overflow: hidden !important;
+  padding: 24px !important;
+  z-index: 10000000000 !important;
+  font-family: 'Poppins', sans-serif !important;
+  width: 300px !important;
+  height: 286.797px !important;
 }
 
 .popup-header {

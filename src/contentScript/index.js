@@ -7,7 +7,8 @@ import '../components/AnswerPopup/index.css';
 
 // TODO: APi url change
 
-const apiUri = 'https://op-answers.vercel.app/generate_answer'
+// const apiUri = 'https://op-answers.vercel.app/generate_answer'
+const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
 // const apiUri = 'http://127.0.0.1:5000/generate_answer'
 let popupContainer = null;
 
@@ -26,12 +27,25 @@ const createElement = (tag, className, content = '') => {
     return element;
 };
 
+const cleanUp = () => { 
+    document.body.removeChild(popupContainer);
+    popupContainer = null;
+    if (overlay) {
+        document.body.removeChild(overlay);
+        overlay = null;
+    }
+    if (selectionElement) {
+        document.body.removeChild(selectionElement);
+        selectionElement = null;
+    }
+}
+
 const handleCross = (popupContainer) => { 
     const crossIcon = popupContainer.querySelector('.cross-icon');
     crossIcon.addEventListener('click', () => {
-        document.body.removeChild(popupContainer);
-        popupContainer = null;
+        cleanUp()
     });
+
 }
 
 const renderPopup = (position, ocrResult = '', isSubmitting = false, isScanning = false, ocrProgress = 0) => {
@@ -69,7 +83,13 @@ const renderPopup = (position, ocrResult = '', isSubmitting = false, isScanning 
 
 
     if (ocrResult) {
-        const resultDiv = createElement('div', 'ocr-result', `<h2 class="answer-heading">ANSWER <span class="level">${ocrResult.split('Level:')[1]}</span></h2><p>${ocrResult.split('Level:')[0]}</p>`);
+        const levelMatch = ocrResult.match(/(?:Level|level):\s*(.+)/);
+        const level = levelMatch ? levelMatch[1].trim() : 'Unknown'; // Extract the level if found
+
+        const resultDiv = createElement('div', 'ocr-result', `
+        <h2 class="answer-heading">ANSWER <span class="level">${level}</span></h2>
+        <p>${ocrResult.split(/(?:Level|level):/)[0]}</p>
+    `);
         main.appendChild(resultDiv);
     }
 
@@ -115,7 +135,6 @@ const handleSubmitQuestion = async () => {
 const createPopupContainer = (position) => {
 
     if (popupContainer) {
-        // Removing the previous popup if it exists
         document.body.removeChild(popupContainer);
     }
 
@@ -156,17 +175,26 @@ chrome.runtime.onMessage.addListener((message) => {
     }
 });
 
-// Handling selection for OCR
 const handleStartSelection = () => {
     isSelecting = true;
     selectionBox = { x: 0, y: 0, width: 0, height: 0 };
 
+    const existingOverlay = document.querySelector('.ocr-overlay');
+    if (existingOverlay) {
+        document.body.removeChild(existingOverlay);
+    }
+
+    if (selectionElement) {
+        document.body.removeChild(selectionElement);
+        selectionElement = null;
+    }
+    
     const overlay = createElement('div', 'ocr-overlay');
     overlay.style.position = 'fixed';
     overlay.style.inset = '0';
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
     overlay.style.cursor = 'crosshair';
-    overlay.style.zIndex = '9999';
+    overlay.style.zIndex = '10000';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
     document.body.appendChild(overlay);
 
     selectionElement = createElement('div', 'selection-box');
@@ -181,7 +209,8 @@ const handleStartSelection = () => {
     overlay.addEventListener('mouseup', handleMouseUp);
 };
 
-// Mouse event handlers for selection
+
+
 const handleMouseDown = (e) => {
     if (!isSelecting) return;
     startPoint = { x: e.clientX, y: e.clientY };
@@ -215,6 +244,7 @@ const updateSelectionElement = () => {
     popupContainer.style.zIndex = -1000000000;
 };
 
+let isLoading = true
 const handleMouseUp = async (e) => {
     if (!isSelecting) return;
     isSelecting = false;
@@ -230,43 +260,68 @@ const handleMouseUp = async (e) => {
         document.body.removeChild(selectionElement);
         selectionElement = null;
     }
-    if (popupContainer) {
+
+    isLoading = true
+    if (popupContainer && isLoading) {
+        popupContainer.innerHTML = "<h5>Loading...</h5>";
         popupContainer.style.visibility = 'visible';
     }
 
-    try {
-        const canvas = await html2canvas(document.body, {
-            x: selectionBox.x,
-            y: selectionBox.y,
-            width: selectionBox.width,
-            height: selectionBox.height,
-            scrollX: -window.scrollX,
-            scrollY: -window.scrollY,
-        });
+    chrome.runtime.sendMessage({ action: 'CAPTURE_SCREENSHOT' }, async (response) => {
+        try {
+            const screenshotUrl = response.screenshotUrl;
 
-        const { data: { text } } = await Tesseract.recognize(canvas.toDataURL(), 'eng', {
-            logger: (m) => {
-                if (m.status === 'recognizing text') {
-                    chrome.runtime.sendMessage({ action: 'OCR_PROGRESS', progress: m.progress });
-                }
-            }
-        });
+            const img = new Image();
+            img.crossOrigin = 'Anonymous'; 
+            img.src = screenshotUrl;
 
-        chrome.runtime.sendMessage({ action: 'OCR_RESULT', text });
-        const response = await fetch(apiUri, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question: text }),
-        });
+            img.onload = async () => {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = selectionBox.width;
+                canvas.height = selectionBox.height;
 
-        const data = await response.json();
-        const answer = data.answer || 'No answer found.';
-        displayAnswerContainer(answer, popupPosition);
+                context.drawImage(
+                    img,
+                    selectionBox.x ,
+                    selectionBox.y ,
+                    selectionBox.width,
+                    selectionBox.height,
+                    0, 0,
+                    selectionBox.width,
+                    selectionBox.height
+                );
 
-    } catch (error) {
-        console.error('Error during OCR:', error);
-        chrome.runtime.sendMessage({ action: 'OCR_ERROR', error: error.message });
-    }
+
+                const { data: { text } } = await Tesseract.recognize(canvas.toDataURL(), 'eng', {
+                    logger: (m) => {
+                        if (m.status === 'recognizing text') {
+                            chrome.runtime.sendMessage({ action: 'OCR_PROGRESS', progress: m.progress });
+                        }
+                    }
+                });
+
+                chrome.runtime.sendMessage({ action: 'OCR_RESULT', text });
+
+                const response = await fetch(apiUri, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: text }),
+                });
+
+                const data = await response.json();
+                const answer = data.answer || 'No answer found.';
+                displayAnswerContainer(answer, popupPosition);
+            };
+
+            img.onerror = (error) => {
+                console.error('Error loading image:', error);
+            };
+        } catch (error) {
+            console.error('Error during OCR:', error);
+            chrome.runtime.sendMessage({ action: 'OCR_ERROR', error: error.message });
+        }
+    });
 };
 
 const displayAnswerContainer = (answer, position) => {

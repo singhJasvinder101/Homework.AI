@@ -43,3 +43,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'CAPTURE_SCREENSHOT') {
+    chrome.tabs.captureVisibleTab(null, {}, (screenshotUrl) => {
+      console.log(screenshotUrl)
+      sendResponse({ screenshotUrl });
+    });
+    return true; // Indicates that you wish to send a response asynchronously
+  }
+});
+
