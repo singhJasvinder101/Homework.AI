@@ -1,9 +1,8 @@
-# app.py - Flask API
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify # type: ignore
 import os
-import google.generativeai as genai
-from flask_cors import CORS
-from dotenv import load_dotenv 
+import google.generativeai as genai # type: ignore
+from flask_cors import CORS # type: ignore
+from dotenv import load_dotenv  # type: ignore
 
 load_dotenv()
 app = Flask(__name__)

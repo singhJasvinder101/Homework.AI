@@ -18,6 +18,7 @@ export default defineManifest({
     default_popup: 'popup.html',
     default_icon: 'img/logo-48.png',
   },
+  devtools_page: 'devtools.html',
   background: {
     service_worker: 'src/background/index.js',
     type: 'module',
@@ -25,14 +26,15 @@ export default defineManifest({
   content_scripts: [
     {
       matches: ['http://*/*', 'https://*/*'],
+      all_frames: true,
       js: ['src/contentScript/index.js'],
     },
   ],
   web_accessible_resources: [
     {
-      resources: ['img/logo-16.png', 'img/logo-34.png', 'img/logo-48.png', 'img/logo-128.png', 'img/pointer.png', "answerpopup.html"],
+      resources: ['img/logo-16.png', 'img/logo-34.png', 'img/logo-48.png', 'img/logo-128.png'],
       matches: [],
     },
   ],
-  permissions: ['activeTab', 'scripting','sidePanel', 'storage'],
+  permissions: ['activeTab', 'scripting', 'sidePanel', 'storage'],
 })

@@ -3,9 +3,9 @@ import html2canvas from 'html2canvas';
 import Tesseract from 'tesseract.js';
 import './content.css';
 import '../components/AnswerPopup/index.css';
+import { cameraIcon, sendIcon } from '../components/icons/icons';
 
 
-// TODO: APi url change
 
 // const apiUri = 'https://op-answers.vercel.app/generate_answer'
 const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
@@ -13,22 +13,26 @@ const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
 let popupContainer = null;
 
 let isScanning = false;
-let isSubmitting = false; 
-let ocrProgress = 0; 
-let question = ''; 
-let ocrResult = ''; 
+let isSubmitting = false;
+let ocrProgress = 0;
+let question = '';
+let ocrResult = '';
 let isRendered = false;
+let backgroundAnswer = false;
 
 
-const createElement = (tag, className, content = '') => {
+const createElement = (tag, className, content = '', id) => {
     const element = document.createElement(tag);
     if (className) element.className = className;
+    if(id) element.id = id;
     if (content) element.innerHTML = content;
     return element;
 };
 
-const cleanUp = () => { 
+const cleanUp = () => {
     document.body.removeChild(popupContainer);
+    const overlay = document.querySelector('.ocr-overlay');
+    const selectionElement = document.querySelector('.selection-box');
     popupContainer = null;
     if (overlay) {
         document.body.removeChild(overlay);
@@ -40,15 +44,17 @@ const cleanUp = () => {
     }
 }
 
-const handleCross = (popupContainer) => { 
+const handleCross = (popupContainer) => {
     const crossIcon = popupContainer.querySelector('.cross-icon');
     crossIcon.addEventListener('click', () => {
-        cleanUp()
+        popupContainer.classList.add('closing');
+        setTimeout(cleanUp, 500);
     });
 
 }
 
-const renderPopup = (position, ocrResult = '', isSubmitting = false, isScanning = false, ocrProgress = 0) => {
+const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting = false, isScanning = false, ocrProgress = 0) => {
+    console.log(backgroundAnswer)
     if (!popupContainer) return;
     isRendered = true;
 
@@ -56,7 +62,9 @@ const renderPopup = (position, ocrResult = '', isSubmitting = false, isScanning 
     popupContainer.innerHTML = '';
 
     const header = createElement('header', 'popup-header', '<h1>Homework AI</h1><span class="cross-icon">x</span>');
+    header.id = "popup-header";
     const main = createElement('main', 'popup-content');
+    main.id = "popup-content";
 
     const inputContainer = createElement('div', 'input-container');
     const input = createElement('input', 'inp', '');
@@ -66,14 +74,19 @@ const renderPopup = (position, ocrResult = '', isSubmitting = false, isScanning 
         question = e.target.value;
     });
 
-    const submitButton = createElement('button', 'icon-button', isSubmitting ? 'wait..' : 'Go');
+    const submitButton = createElement('button', 'icon-button', isSubmitting ? '...' : '');
+    submitButton.id = "icon-button";
     submitButton.disabled = isSubmitting;
     submitButton.addEventListener('click', handleSubmitQuestion);
+
+    
+    submitButton.appendChild(sendIcon);
 
     inputContainer.appendChild(input);
     inputContainer.appendChild(submitButton);
 
     const ocrButton = createElement('button', 'start-ocr-button', isScanning ? 'Scanning...' : 'Scan');
+    ocrButton.appendChild(cameraIcon);
     ocrButton.disabled = isScanning;
     ocrButton.addEventListener('click', handleStartOCR);
 
@@ -81,20 +94,27 @@ const renderPopup = (position, ocrResult = '', isSubmitting = false, isScanning 
     main.appendChild(inputContainer);
     main.appendChild(ocrButton);
 
+    if (ocrResult || backgroundAnswer) {
+        console.log("hello")
+        const plainTextResult = ocrResult
+            .replace(/([*_~#`>|])/g, '') 
+            .replace(/\[(.*?)\]\(.*?\)/g, '$1') 
+            .replace(/\n{2,}/g, '\n'); 
 
-    if (ocrResult) {
-        const levelMatch = ocrResult.match(/(?:Level|level):\s*(.+)/);
-        const level = levelMatch ? levelMatch[1].trim() : 'Unknown'; // Extract the level if found
+        const levelMatch = plainTextResult.match(/(?:Level|level):\s*(.+)/);
+        const level = levelMatch ? levelMatch[1].trim() : 'Unknown';
 
-        const resultDiv = createElement('div', 'ocr-result', `
-        <h2 class="answer-heading">ANSWER <span class="level">${level}</span></h2>
-        <p>${ocrResult.split(/(?:Level|level):/)[0]}</p>
-    `);
+        const resultDiv = createElement(
+            'div',
+            'ocr-result',
+            `<p class="answer-heading">ANSWER <span class="level">${level}</span></p>
+         <p>${plainTextResult.split(/(?:Level|level):/)[0]}</p>`,
+            'ocr-result'
+        );
         main.appendChild(resultDiv);
     }
 
     popupContainer.appendChild(main);
-
 
     handleCross(popupContainer);
 };
@@ -107,7 +127,7 @@ const handleStartOCR = () => {
 
 const handleSubmitQuestion = async () => {
     isSubmitting = true;
-    renderPopup(null, ocrResult, isSubmitting, isScanning, ocrProgress); // Update the UI to reflect submission status
+    renderPopup(null, ocrResult, isSubmitting, isScanning, ocrProgress);
 
     try {
         const response = await fetch(apiUri, {
@@ -127,7 +147,7 @@ const handleSubmitQuestion = async () => {
         console.error("Error submitting question:", error);
     } finally {
         isSubmitting = false;
-        renderPopup(null, ocrResult, isSubmitting, isScanning, ocrProgress); // Update the UI after submission completes
+        renderPopup(null, ocrResult, isSubmitting, isScanning, ocrProgress); 
     }
 };
 
@@ -148,7 +168,6 @@ const createPopupContainer = (position) => {
     popupContainer.style.top = `${correctedY}px`;
     popupContainer.style.left = `${correctedX}px`;
     popupContainer.style.zIndex = 1000000000;
-    popupContainer.style.width = `300px`;
     popupContainer.style.backgroundColor = `white`;
     popupContainer.style.padding = `20px`;
     popupContainer.style.borderRadius = `1rem`;
@@ -162,6 +181,7 @@ let isSelecting = false;
 let startPoint = { x: 0, y: 0 };
 let selectionBox = { x: 0, y: 0, width: 0, height: 0 };
 let selectionElement = null;
+let overlay = null
 
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'START_OCR') {
@@ -169,11 +189,21 @@ chrome.runtime.onMessage.addListener((message) => {
         handleStartSelection();
     } else if (message.action === 'SHOW_ANSWER') {
         const { answer } = message;
-        displayAnswerContainer(answer);
+        console.log(answer)
+        ocrResult = answer
+        const defaultPosition = { x: 910, y: 223 }; 
+        
+        if (!popupContainer) {
+            createPopupContainer(defaultPosition);
+        }
+
+        renderPopup(defaultPosition, answer, isSubmitting, isScanning, ocrProgress);
     } else if (message.action === 'OCR_PROGRESS') {
         isScanning = true;
     }
 });
+
+
 
 const handleStartSelection = () => {
     isSelecting = true;
@@ -183,25 +213,24 @@ const handleStartSelection = () => {
     if (existingOverlay) {
         document.body.removeChild(existingOverlay);
     }
-
     if (selectionElement) {
         document.body.removeChild(selectionElement);
         selectionElement = null;
     }
-    
-    const overlay = createElement('div', 'ocr-overlay');
+
+    overlay = createElement('div', 'ocr-overlay');
     overlay.style.position = 'fixed';
     overlay.style.inset = '0';
     overlay.style.cursor = 'crosshair';
     overlay.style.zIndex = '10000';
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
     document.body.appendChild(overlay);
 
     selectionElement = createElement('div', 'selection-box');
     selectionElement.style.position = 'fixed';
-    selectionElement.style.border = '2px dashed white';
+    selectionElement.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+    selectionElement.style.zIndex = '10001';
     selectionElement.style.pointerEvents = 'none';
-    selectionElement.style.zIndex = '10000';
     document.body.appendChild(selectionElement);
 
     overlay.addEventListener('mousedown', handleMouseDown);
@@ -209,13 +238,31 @@ const handleStartSelection = () => {
     overlay.addEventListener('mouseup', handleMouseUp);
 };
 
+const updateOverlayClip = () => {
+    if (!overlay) return;
 
+    const clipPath = `polygon(
+        0% 0%,
+        0% 100%,
+        ${selectionBox.x}px 100%,
+        ${selectionBox.x}px ${selectionBox.y}px,
+        ${selectionBox.x + selectionBox.width}px ${selectionBox.y}px,
+        ${selectionBox.x + selectionBox.width}px ${selectionBox.y + selectionBox.height}px,
+        ${selectionBox.x}px ${selectionBox.y + selectionBox.height}px,
+        ${selectionBox.x}px 100%,
+        100% 100%,
+        100% 0%
+    )`;
+
+    overlay.style.clipPath = clipPath;
+};
 
 const handleMouseDown = (e) => {
     if (!isSelecting) return;
     startPoint = { x: e.clientX, y: e.clientY };
     selectionBox = { x: startPoint.x, y: startPoint.y, width: 0, height: 0 };
     updateSelectionElement();
+    updateOverlayClip();
 
     if (popupContainer) {
         popupContainer.style.visibility = 'hidden';
@@ -231,7 +278,53 @@ const handleMouseMove = (e) => {
         height: Math.abs(e.clientY - startPoint.y),
     };
     updateSelectionElement();
+    updateOverlayClip();
 };
+
+
+
+const createBubble = (position) => {
+    const bubble = createElement('div', 'bubble');
+    bubble.style.position = 'fixed';
+    bubble.style.backgroundColor = 'transparent'; 
+    bubble.style.border = '3px solid #6c5ce7'; 
+    bubble.style.borderRadius = '50%';
+    bubble.style.width = '13px'; 
+    bubble.style.height = '13px'; 
+    bubble.style.zIndex = '10002'; 
+    bubble.style.pointerEvents = 'none'; 
+
+    bubble.style.left = `${position.x}px`;
+    bubble.style.top = `${position.y}px`;
+
+    return bubble;
+};
+
+const updateBubbles = () => {
+    const existingBubbles = document.querySelectorAll('.bubble');
+    existingBubbles.forEach(bubble => bubble.remove());
+
+    const bubblePositions = [
+        { x: selectionBox.x - 10, y: selectionBox.y - 10 }, // Top-left
+        { x: selectionBox.x + selectionBox.width - 10, y: selectionBox.y - 10 }, // Top-right
+        { x: selectionBox.x - 10, y: selectionBox.y + selectionBox.height - 10 }, // Bottom-left
+        { x: selectionBox.x + selectionBox.width - 10, y: selectionBox.y + selectionBox.height - 10 }, // Bottom-right
+        { x: selectionBox.x + selectionBox.width / 2 - 10, y: selectionBox.y - 10 }, // Top-center
+        { x: selectionBox.x + selectionBox.width / 2 - 10, y: selectionBox.y + selectionBox.height - 10 }, // Bottom-center
+        { x: selectionBox.x - 10, y: selectionBox.y + selectionBox.height / 2 - 10 }, // Middle-left
+        { x: selectionBox.x + selectionBox.width - 10, y: selectionBox.y + selectionBox.height / 2 - 10 }, // Middle-right
+    ];
+
+    bubblePositions.forEach(position => {
+        const bubble = createBubble(position);
+        document.body.appendChild(bubble);
+    });
+};
+
+const deleteBubbles = () => { 
+    const existingBubbles = document.querySelectorAll('.bubble');
+    existingBubbles.forEach(bubble => bubble.remove());
+}
 
 const updateSelectionElement = () => {
     if (selectionElement) {
@@ -239,15 +332,18 @@ const updateSelectionElement = () => {
         selectionElement.style.top = `${selectionBox.y}px`;
         selectionElement.style.width = `${selectionBox.width}px`;
         selectionElement.style.height = `${selectionBox.height}px`;
-    }
+        selectionElement.style.pointerEvents = 'auto';
 
-    popupContainer.style.zIndex = -1000000000;
+        updateBubbles()
+    }
 };
+
 
 let isLoading = true
 const handleMouseUp = async (e) => {
     if (!isSelecting) return;
     isSelecting = false;
+    deleteBubbles();
 
     const popupPosition = { x: e.clientX, y: e.clientY };
 
@@ -261,7 +357,7 @@ const handleMouseUp = async (e) => {
         selectionElement = null;
     }
 
-    isLoading = true
+    isLoading = true;
     if (popupContainer && isLoading) {
         popupContainer.innerHTML = "<h5>Loading...</h5>";
         popupContainer.style.visibility = 'visible';
@@ -272,7 +368,7 @@ const handleMouseUp = async (e) => {
             const screenshotUrl = response.screenshotUrl;
 
             const img = new Image();
-            img.crossOrigin = 'Anonymous'; 
+            img.crossOrigin = 'Anonymous';
             img.src = screenshotUrl;
 
             img.onload = async () => {
@@ -283,15 +379,11 @@ const handleMouseUp = async (e) => {
 
                 context.drawImage(
                     img,
-                    selectionBox.x ,
-                    selectionBox.y ,
-                    selectionBox.width,
-                    selectionBox.height,
+                    selectionBox.x, selectionBox.y,
+                    selectionBox.width, selectionBox.height,
                     0, 0,
-                    selectionBox.width,
-                    selectionBox.height
+                    selectionBox.width, selectionBox.height
                 );
-
 
                 const { data: { text } } = await Tesseract.recognize(canvas.toDataURL(), 'eng', {
                     logger: (m) => {
@@ -303,6 +395,8 @@ const handleMouseUp = async (e) => {
 
                 chrome.runtime.sendMessage({ action: 'OCR_RESULT', text });
 
+                // Here we render the popup with the tick and cross
+                // renderPopupWithOptions(popupPosition, text);
                 const response = await fetch(apiUri, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -312,16 +406,46 @@ const handleMouseUp = async (e) => {
                 const data = await response.json();
                 const answer = data.answer || 'No answer found.';
                 displayAnswerContainer(answer, popupPosition);
+
             };
 
             img.onerror = (error) => {
                 console.error('Error loading image:', error);
             };
+
         } catch (error) {
             console.error('Error during OCR:', error);
             chrome.runtime.sendMessage({ action: 'OCR_ERROR', error: error.message });
         }
     });
+};
+
+const renderPopupWithOptions = (position, ocrText) => {
+    if (!popupContainer) return;
+
+    popupContainer.innerHTML = '';
+
+    const header = createElement('header', 'popup-header', '<h1>Homework AI</h1>');
+
+    const tickButton = createElement('button', 'tick-button', '✔️', 'tick-button');
+    const crossButton = createElement('button', 'cross-button', '❌', 'cross-button');
+
+    tickButton.addEventListener('click', () => {
+        handleSubmitQuestion(ocrText);
+        cleanUp(); 
+    });
+
+    crossButton.addEventListener('click', () => {
+        cleanUp(); 
+        handleStartSelection();
+    });
+
+    const optionsContainer = createElement('div', 'options-container');
+    optionsContainer.appendChild(tickButton);
+    optionsContainer.appendChild(crossButton);
+
+    popupContainer.appendChild(header);
+    popupContainer.appendChild(optionsContainer);
 };
 
 const displayAnswerContainer = (answer, position) => {

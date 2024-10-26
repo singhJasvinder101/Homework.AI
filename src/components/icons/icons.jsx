@@ -1,0 +1,28 @@
+export const cameraIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+cameraIcon.setAttribute('viewBox', '0 0 24 24');
+cameraIcon.setAttribute('width', '20');
+cameraIcon.setAttribute('height', '20');
+cameraIcon.setAttribute('fill', 'none');
+cameraIcon.setAttribute('stroke', 'white');
+cameraIcon.innerHTML = `
+    <path d="M12 16C13.6569 16 15 14.6569 15 13C15 11.3431 13.6569 10 12 10C10.3431 10 9 11.3431 9 13C9 14.6569 10.3431 16 12 16Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M3 16.8V9.2C3 8.0799 3 7.51984 3.21799 7.09202C3.40973 6.71569 3.71569 6.40973 4.09202 6.21799C4.51984 6 5.0799 6 6.2 6H7.25464C7.37758 6 7.43905 6 7.49576 5.9935C7.79166 5.95961 8.05705 5.79559 8.21969 5.54609C8.25086 5.49827 8.27836 5.44328 8.33333 5.33333C8.44329 5.11342 8.49827 5.00346 8.56062 4.90782C8.8859 4.40882 9.41668 4.08078 10.0085 4.01299C10.1219 4 10.2448 4 10.4907 4H13.5093C13.7552 4 13.8781 4 13.9915 4.01299C14.5833 4.08078 15.1141 4.40882 15.4394 4.90782C15.5017 5.00345 15.5567 5.11345 15.6667 5.33333C15.7216 5.44329 15.7491 5.49827 15.7803 5.54609C15.943 5.79559 16.2083 5.95961 16.5042 5.9935C16.561 6 16.6224 6 16.7454 6H17.8C18.9201 6 19.4802 6 19.908 6.21799C20.2843 6.40973 20.5903 6.71569 20.782 7.09202C21 7.51984 21 8.0799 21 9.2V16.8C21 17.9201 21 18.4802 20.782 18.908C20.5903 19.2843 20.2843 19.5903 19.908 19.782C19.4802 20 18.9201 20 17.8 20H6.2C5.0799 20 4.51984 20 4.09202 19.782C3.71569 19.5903 3.40973 19.2843 3.21799 18.908C3 18.4802 3 17.9201 3 16.8Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+`;
+
+
+export const sendIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+sendIcon.setAttribute('viewBox', '0 0 24 24');
+sendIcon.setAttribute('width', '20');
+sendIcon.setAttribute('height', '20');
+sendIcon.setAttribute('fill', 'none');
+sendIcon.setAttribute('stroke', 'white');
+sendIcon.innerHTML = '<path d="M10.3009 13.6949L20.102 3.89742M10.5795 14.1355L12.8019 18.5804C13.339 19.6545 13.6075 20.1916 13.9458 20.3356C14.2394 20.4606 14.575 20.4379 14.8492 20.2747C15.1651 20.0866 15.3591 19.5183 15.7472 18.3818L19.9463 6.08434C20.2845 5.09409 20.4535 4.59896 20.3378 4.27142C20.2371 3.98648 20.013 3.76234 19.7281 3.66167C19.4005 3.54595 18.9054 3.71502 17.9151 4.05315L5.61763 8.2523C4.48114 8.64037 3.91289 8.83441 3.72478 9.15032C3.56153 9.42447 3.53891 9.76007 3.66389 10.0536C3.80791 10.3919 4.34498 10.6605 5.41912 11.1975L9.86397 13.42C10.041 13.5085 10.1295 13.5527 10.2061 13.6118C10.2742 13.6643 10.3352 13.7253 10.3876 13.7933C10.4468 13.87 10.491 13.9585 10.5795 14.1355Z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+
+
+export const loaderIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+sendIcon.setAttribute('viewBox', '0 0 24 24');
+sendIcon.setAttribute('width', '24');
+sendIcon.setAttribute('height', '24');
+sendIcon.setAttribute('fill', 'none');
+sendIcon.setAttribute('stroke', 'white');
+loaderIcon.innerHTML = '<path fill="currentColor" d="M12 4V1l-1 1 1 1 1-1-1-1zm6.62 5.29c-.39.39-.39 1.02 0 1.41l1.29 1.29a5.978 5.978 0 001.46-3.71h-2a4.001 4.001 0 01-.75 1.01zm-6.62 6.62v3l1-1-1-1-1 1zm-6.62-5.29c.39-.39.39-1.02 0-1.41l-1.29-1.29A5.978 5.978 0 000 12h2a4.001 4.001 0 00.75-1.01zM12 6v2c-2.21 0-4 1.79-4 4h2a2 2 0 112 2v2c3.31 0 6-2.69 6-6h-2c0 2.21-1.79 4-4 4V6z"/>';
