@@ -74,7 +74,7 @@ const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting
         question = e.target.value;
     });
 
-    const submitButton = createElement('button', 'icon-button', isSubmitting ? '...' : '');
+    const submitButton = createElement('button', 'icon-button', '');
     submitButton.id = "icon-button";
     submitButton.disabled = isSubmitting;
     submitButton.addEventListener('click', handleSubmitQuestion);
@@ -286,7 +286,7 @@ const handleMouseMove = (e) => {
 const createBubble = (position) => {
     const bubble = createElement('div', 'bubble');
     bubble.style.position = 'fixed';
-    bubble.style.backgroundColor = 'transparent'; 
+    bubble.style.backgroundColor = 'white'; 
     bubble.style.border = '3px solid #6c5ce7'; 
     bubble.style.borderRadius = '50%';
     bubble.style.width = '13px'; 
@@ -332,7 +332,9 @@ const updateSelectionElement = () => {
         selectionElement.style.top = `${selectionBox.y}px`;
         selectionElement.style.width = `${selectionBox.width}px`;
         selectionElement.style.height = `${selectionBox.height}px`;
-        selectionElement.style.pointerEvents = 'auto';
+        selectionElement.style.pointerEvents = 'none';
+        selectionElement.style.border = "1px solid #6c5ce7";
+        selectionElement.style.boxShadow = "0 0 5px rgba(108, 92, 231, 0.5)";
 
         updateBubbles()
     }
@@ -346,6 +348,21 @@ const handleMouseUp = async (e) => {
     deleteBubbles();
 
     const popupPosition = { x: e.clientX, y: e.clientY };
+
+    const MIN_WIDTH = 10; 
+    const MIN_HEIGHT = 10; 
+
+    if (selectionBox.width < MIN_WIDTH || selectionBox.height < MIN_HEIGHT) {
+        const overlay = document.querySelector('.ocr-overlay');
+        if (overlay) {
+            document.body.removeChild(overlay);
+        }
+        if (selectionElement) {
+            document.body.removeChild(selectionElement);
+            selectionElement = null;
+        }
+        return; 
+    }   
 
     const overlay = document.querySelector('.ocr-overlay');
     if (overlay) {
