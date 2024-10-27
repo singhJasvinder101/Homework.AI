@@ -70,8 +70,8 @@
   overflow: hidden !important;
   padding: 24px !important;
   z-index: 10000000000 !important;
-  width: 19.75rem !important;
-  max-height: 350px;
+  width: 364px !important;
+  max-height: 350px !important;
   overflow-y: scroll !important;
 }
 
@@ -142,7 +142,7 @@
 }
 
 
-.bubble {
+.bubble_homeworkai {
     position: absolute;
     width: 20px;
     height: 20px; 

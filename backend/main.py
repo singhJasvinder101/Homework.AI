@@ -54,3 +54,35 @@ def generate_answer():
 
 if __name__ == '__main__':
     app.run(debug = True)
+
+
+#     from anthropic import Anthropic
+#     prompt_template = f"""
+#     You are a search engine that provides very brief, direct answers.
+#     Rules:
+#     - Provide only the essential information without explanations
+#     - For math problems, solve step by step but show only final answer
+#     - For factual questions, verify thoroughly and provide only verified facts
+#     - Max response length: 2-3 sentences
+#     - No explanations or context unless absolutely necessary
+
+#     Question: {question}
+
+#     Answer: """
+
+#     try:
+#         response = anthropic.messages.create(
+#             model="claude-3-sonnet-20240229",
+#             max_tokens=150,
+#             temperature=0.7,
+#             system="You are a direct answering service. Provide only essential information without explanations.",
+#             messages=[
+#                 {
+#                     "role": "user",
+#                     "content": prompt_template
+#                 }
+#             ]
+#         )
+
+#         return jsonify({'answer': response.content[0].text})
+    

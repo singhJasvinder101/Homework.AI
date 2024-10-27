@@ -61,7 +61,7 @@ const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting
     console.log("Rendering popup...");
     popupContainer.innerHTML = '';
 
-    const header = createElement('header', 'popup-header', '<h1>Homework AI</h1><span class="cross-icon">x</span>');
+    const header = createElement('div', 'popup-header', '<h1>Homework AI</h1><span class="cross-icon">x</span>');
     header.id = "popup-header";
     const main = createElement('main', 'popup-content');
     main.id = "popup-content";
@@ -284,7 +284,7 @@ const handleMouseMove = (e) => {
 
 
 const createBubble = (position) => {
-    const bubble = createElement('div', 'bubble');
+    const bubble = createElement('div', 'bubble_homeworkai');
     bubble.style.position = 'fixed';
     bubble.style.backgroundColor = 'white'; 
     bubble.style.border = '3px solid #6c5ce7'; 
@@ -301,7 +301,7 @@ const createBubble = (position) => {
 };
 
 const updateBubbles = () => {
-    const existingBubbles = document.querySelectorAll('.bubble');
+    const existingBubbles = document.querySelectorAll('.bubble_homeworkai');
     existingBubbles.forEach(bubble => bubble.remove());
 
     const bubblePositions = [
@@ -322,7 +322,7 @@ const updateBubbles = () => {
 };
 
 const deleteBubbles = () => { 
-    const existingBubbles = document.querySelectorAll('.bubble');
+    const existingBubbles = document.querySelectorAll('.bubble_homeworkai');
     existingBubbles.forEach(bubble => bubble.remove());
 }
 
@@ -442,7 +442,7 @@ const renderPopupWithOptions = (position, ocrText) => {
 
     popupContainer.innerHTML = '';
 
-    const header = createElement('header', 'popup-header', '<h1>Homework AI</h1>');
+    const header = createElement('div', 'popup-header', '<h1>Homework AI</h1>');
 
     const tickButton = createElement('button', 'tick-button', '✔️', 'tick-button');
     const crossButton = createElement('button', 'cross-button', '❌', 'cross-button');
