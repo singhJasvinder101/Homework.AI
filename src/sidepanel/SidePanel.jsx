@@ -191,7 +191,6 @@ export const SidePanel = () => {
         body: JSON.stringify({ question, model_count: modelCount }),
       });
       const data = await response.json();
-      console.log(data)
       return data.answer || 'No answer found.';
     } catch (error) {
       console.error("Error submitting question:", error);
@@ -296,7 +295,6 @@ export const SidePanel = () => {
 
   const handleChangeAi = useCallback(() => {
     const newModelCount = modelCount === 1 ? 2 : 1;
-    console.log(newModelCount)
     setModelCount(newModelCount);
 
     // chrome.storage.sync.set({ modelCount: newModelCount });

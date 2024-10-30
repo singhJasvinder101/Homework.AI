@@ -26,7 +26,6 @@ let modelCount;
 
 
 chrome.storage.local.get(['modelCount']).then((result) => {
-    console.log(result)
     modelCount = result.modelCount || 1;
     console.info(`Model count retrieved: ${modelCount}`);
 })
@@ -86,11 +85,9 @@ const handleCross = (popupContainer) => {
 }
 
 const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting = false, isScanning = false, ocrProgress = 0) => {
-    console.log(backgroundAnswer)
     if (!popupContainer) return;
     isRendered = true;
 
-    console.log("Rendering popup...");
     popupContainer.innerHTML = '';
 
     const header = createElement('div', 'popup-header', '<h1>Homework AI</h1><span class="cross-icon">x</span>');
@@ -129,7 +126,6 @@ const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting
     main.appendChild(ocrButton);
 
     if (ocrResult || backgroundAnswer) {
-        console.log("hello")
         const plainTextResult = ocrResult
             .replace(/([*_~#`>|])/g, '')
             .replace(/\[(.*?)\]\(.*?\)/g, '$1')
@@ -166,7 +162,6 @@ const handleSubmitQuestion = async () => {
     renderPopup(null, ocrResult, isSubmitting, isScanning, ocrProgress);
 
     try {
-        console.log(modelCount)
         const response = await fetch(apiUri, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -195,7 +190,6 @@ const createPopupContainer = (position) => {
     }
     
     if (!isAllowedPopupContainer) return;
-    console.log(position)
     const correctedX = position.x + window.scrollX;
     const correctedY = position.y + window.scrollY - 150;
 
@@ -222,11 +216,9 @@ let overlay = null
 
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'START_OCR') {
-        console.log("ïncoming")
         handleStartSelection();
     } else if (message.action === 'SHOW_ANSWER') {
         const { answer } = message;
-        console.log(answer)
         ocrResult = answer
         const defaultPosition = { x: 910, y: 223 };
 
@@ -246,9 +238,7 @@ chrome.runtime.onMessage.addListener((message) => {
         renderPopup(defaultPosition, answer, isSubmitting, isScanning, ocrProgress);
     } else if (message.action === 'OCR_TO_TEXT') {
         const { image } = message;
-        console.log("coming from backrgound")
         ocr_toText(image).then(text => {
-            console.log(text)
             chrome.runtime.sendMessage({ action: 'OCR_RESULT2', text, image });
         })
     }
@@ -454,7 +444,7 @@ const handleMouseUp = async (e) => {
                     selectionBox.width, selectionBox.height
                 );
 
-                console.log(canvas.toDataURL())
+                // console.log(canvas.toDataURL())
                 chrome.runtime.sendMessage({ action: 'CANVAS_IMAGE2', image: canvas.toDataURL() });
 
                 const { data: { text } } = await Tesseract.recognize(canvas.toDataURL(), 'eng', {

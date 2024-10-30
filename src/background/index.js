@@ -1,4 +1,4 @@
-console.log('background is running')
+// console.log('background is running')
 
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -55,7 +55,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.sidePanel.setOptions({ enabled: false });
     chrome.sidePanel.setOptions({ enabled: true });
   } else if (message.action === 'OCR_TO_TEXT') { 
-    console.log("background yaad kita")
+    // console.log("background yaad kita")
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0].id) {
         chrome.tabs.sendMessage(tabs[0].id, { action: 'OCR_TO_TEXT', image:message.image });
@@ -76,7 +76,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     try {
       chrome.tabs.captureVisibleTab(null, {}, (screenshotUrl) => {
         if (chrome.runtime.lastError) {
-          console.log('Error capturing screenshot:', chrome.runtime.lastError.message);
+          // console.log('Error capturing screenshot:', chrome.runtime.lastError.message);
           sendResponse({ error: chrome.runtime.lastError.message });
         } else {
           // console.log('Screenshot captured:', screenshotUrl);

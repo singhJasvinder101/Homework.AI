@@ -59,7 +59,6 @@ export const Popup = () => {
           chrome.tabs.sendMessage(tabs[0].id, { action: "SHOW_ANSWER", answer });
         }
       });
-      console.log(answer);
     } catch (error) {
       console.error("Error submitting question:", error);
     } finally {
