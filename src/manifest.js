@@ -41,7 +41,7 @@ export default defineManifest({
       matches: [],
     },
   ],
-  permissions: ["scripting", "tabs", "activeTab", "<all_urls>", "sidePanel", "storage"],
+  permissions: ["tabs", "activeTab", "<all_urls>", "sidePanel", "storage"],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; style-src 'self'; img-src 'self' data:;"
   }
