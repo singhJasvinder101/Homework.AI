@@ -29,6 +29,7 @@ def add_cors_headers(response):
 
 
 
+
 def llama_response(question):
     llm = ChatGroq(
         model="llama-3.1-70b-versatile",
