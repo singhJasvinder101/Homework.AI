@@ -3,6 +3,8 @@ import os
 import google.generativeai as genai # type: ignore
 from flask_cors import CORS # type: ignore
 from dotenv import load_dotenv  # type: ignore
+from langchain_groq import ChatGroq
+
 
 load_dotenv()
 app = Flask(__name__)
@@ -10,6 +12,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 genai.configure(api_key = os.environ['GOOGLE_API_KEY'])
+llama_key  = os.environ['LLAMA_API_KEY']
 
 model = genai.GenerativeModel('models/gemini-1.5-flash')
 
@@ -17,25 +20,47 @@ model = genai.GenerativeModel('models/gemini-1.5-flash')
 def hello():
     return jsonify({ 'message': 'working...' })
 
-@app.route('/generate_answer', methods = ['POST'])
-def generate_answer():
-    data = request.json
-    question = data.get('question')
 
-    if not question:
-        return jsonify({ 'error': 'No question provided' }), 400
+def llama_response(question):
+    llm = ChatGroq(
+        model="llama-3.1-70b-versatile",
+        temperature=0.95,
+        api_key=llama_key
+    )
 
+    prompt_template = """
+    Please analyze the question below and perform the following:
+    - Identify if there are calculations involved; if so, solve accurately and verify results.
+    - Provide only the answer in this format: Answer: [Correct Option] - [Option Name].
+    - Also return the level of Question in the format: Level: [Level of Question]
+    - It may also possible when the user want to talk to you other than question then nicely answer
+    
+    Example:
+    Answer: A - Option Name
+
+    Question: {question}
+    """
+
+    prompt = prompt_template.format(question=question)
+    response = llm.invoke(prompt)
+    
+    print("llama called",response.content.strip())
+    return response.content.strip()
+
+
+def gemini_response(question):
     prompt_template = f"""
-    Ensure that every answers to my questions come from reputable sources and always include citations and links to the sources for information.
+    Please analyze the question below and perform the following:
+    - Identify if there are calculations involved; if so, solve accurately and verify results.
+    - Provide only the answer in this format: Answer: [Correct Option](Optionally/ not necessory) - [Option Name] compulsory.
+    - Also return the level of Question in the format: Level: [Level of Question]
+    - It may also possible when the user want to talk to you other than question then nicely answer
     
-    If the questions include good mathematical questions do solve them by yourself and revise your answer 4 times before submitting.
-    
-    If question include factual question carefully check the answer from all sources and return most accurate answer also check your answer and verify with question atleast 3-4 times
+    Example:
+    Answer: A - Option Name
 
-    Do not give me explanation of the answer Just write the correct answer.
-    
-    In next line rate the level of question as level:
-    Question: {question}"""
+    Question: {question}
+    """
 
 
     generation_config = genai.types.GenerationConfig(
@@ -45,12 +70,39 @@ def generate_answer():
       max_output_tokens=8192  
     )
 
-    response = model.generate_content(
-        prompt_template,
-        generation_config = generation_config
-    )
+    try:
+        response = model.generate_content(
+            prompt_template,
+            generation_config = generation_config
+        )
+        print("gemini called",response.text)
+        return response.text
+    except:
+      print('An exception occurred')
+      return "something went wrong"
 
-    return jsonify({ 'answer': response.text })
+@app.route('/generate_answer', methods = ['POST'])
+def generate_answer():
+    data = request.json
+    question = data.get('question')
+    model_count = data.get('model_count')
+
+    if not question:
+        return jsonify({ 'error': 'No question provided' }), 400
+    
+    response = ""
+    
+    print(model_count)
+
+    if(model_count == 1):
+        response = gemini_response(question)  
+    elif(model_count == 2):
+        response = llama_response(question)
+    else:
+        response = gemini_response(question)
+        
+
+    return jsonify({ 'answer': response })
 
 if __name__ == '__main__':
     app.run(debug = True)

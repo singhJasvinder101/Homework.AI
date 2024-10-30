@@ -12,7 +12,8 @@ export const Popup = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
 
-  const apiUri = 'https://op-answers.vercel.app/generate_answer'
+  // const apiUri = 'https://op-answers.vercel.app/generate_answer'
+  const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
   // const apiUri = 'http://127.0.0.1:5000/generate_answer'
 
   useEffect(() => {

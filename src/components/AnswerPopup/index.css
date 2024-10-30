@@ -60,6 +60,7 @@
   padding: 5px 10px;
   border-radius: 5px;
   font-size: 12px;
+  margin-bottom: 12px;
 }
 
 #popup-container {
@@ -71,6 +72,7 @@
   padding: 24px !important;
   z-index: 10000000000 !important;
   width: 364px !important;
+  color: black !important;
   max-height: 350px !important;
   overflow-y: scroll !important;
 }
@@ -125,12 +127,12 @@
   gap: 9px;
 }
 
-.input-container {
+#input-container {
   display: flex;
   gap: 12px;
 }
 
-.inp {
+#inp {
   flex-grow: 1;
   padding: 10px 8px;
   border: 2px solid var(--border-color);
@@ -152,7 +154,7 @@
     z-index: 1000;
 }
 
-.inp:focus {
+#inp:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px var(--secondary-color);

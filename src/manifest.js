@@ -10,13 +10,15 @@ export default defineManifest({
   manifest_version: 3,
   icons: {
     16: 'img/logo-16.png',
-    32: 'img/logo-34.png',
+    32: 'img/logo-32.png',
     48: 'img/logo-48.png',
     128: 'img/logo-128.png',
   },
   action: {
-    default_popup: 'popup.html',
     default_icon: 'img/logo-48.png',
+  },
+  side_panel: {
+    default_path: 'sidepanel.html',
   },
   devtools_page: 'devtools.html',
   background: {
@@ -25,16 +27,24 @@ export default defineManifest({
   },
   content_scripts: [
     {
-      matches: ['http://*/*', 'https://*/*'],
+      matches: [
+        "<all_urls>"
+      ],
       all_frames: true,
       js: ['src/contentScript/index.js'],
     },
   ],
+  host_permissions: ["<all_urls>"],
   web_accessible_resources: [
     {
-      resources: ['img/logo-16.png', 'img/logo-34.png', 'img/logo-48.png', 'img/logo-128.png'],
+      resources: ['img/logo-16.png', 'img/logo-32.png', 'img/logo-48.png', 'img/logo-128.png', 'scripts/tesseract.min.js', 'scripts/worker.min.js'],
       matches: [],
     },
   ],
-  permissions: ['activeTab', 'scripting', 'sidePanel', 'storage'],
+  permissions: ["scripting", "tabs", "activeTab", "<all_urls>", "sidePanel", "storage"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; style-src 'self'; img-src 'self' data:;"
+  }
+
+
 })

@@ -19,20 +19,51 @@ let question = '';
 let ocrResult = '';
 let isRendered = false;
 let backgroundAnswer = false;
+let isAllowPopupContainer = false;
+let isAllowedPopupContainer = false;
+let modelCount;
 
+
+
+chrome.storage.local.get(['modelCount']).then((result) => {
+    console.log(result)
+    modelCount = result.modelCount || 1;
+    console.info(`Model count retrieved: ${modelCount}`);
+})
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.modelCount) {
+        modelCount = changes.modelCount.newValue;
+        console.info(`Model count updated to: ${modelCount}`);
+    }
+});
+
+window.addEventListener('beforeunload', () => {
+    chrome.runtime.sendMessage({ action: 'SET_IS_SCANNING', isScanning: false });
+});
 
 const createElement = (tag, className, content = '', id) => {
     const element = document.createElement(tag);
     if (className) element.className = className;
-    if(id) element.id = id;
+    if (id) element.id = id;
     if (content) element.innerHTML = content;
     return element;
 };
 
+const ocr_toText = async (image) => { 
+    const { data: { text } } = await Tesseract.recognize(image, 'eng', {
+        logger: (m) => {
+            if (m.status === 'recognizing text') {
+                chrome.runtime.sendMessage({ action: 'OCR_PROGRESS', progress: m.progress });
+            }
+        }
+    });
+    return text;
+}
+
 const cleanUp = () => {
     document.body.removeChild(popupContainer);
-    const overlay = document.querySelector('.ocr-overlay');
-    const selectionElement = document.querySelector('.selection-box');
+    let overlay = document.querySelector('.ocr-overlay');
+    let selectionElement = document.querySelector('.selection-box');
     popupContainer = null;
     if (overlay) {
         document.body.removeChild(overlay);
@@ -45,6 +76,7 @@ const cleanUp = () => {
 }
 
 const handleCross = (popupContainer) => {
+    isAllowPopupContainer = false;
     const crossIcon = popupContainer.querySelector('.cross-icon');
     crossIcon.addEventListener('click', () => {
         popupContainer.classList.add('closing');
@@ -67,7 +99,9 @@ const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting
     main.id = "popup-content";
 
     const inputContainer = createElement('div', 'input-container');
+    inputContainer.id = "input-container"
     const input = createElement('input', 'inp', '');
+    input.id = "inp"
     input.placeholder = 'Enter your question';
 
     input.addEventListener('input', (e) => {
@@ -79,7 +113,7 @@ const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting
     submitButton.disabled = isSubmitting;
     submitButton.addEventListener('click', handleSubmitQuestion);
 
-    
+
     submitButton.appendChild(sendIcon);
 
     inputContainer.appendChild(input);
@@ -97,20 +131,22 @@ const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting
     if (ocrResult || backgroundAnswer) {
         console.log("hello")
         const plainTextResult = ocrResult
-            .replace(/([*_~#`>|])/g, '') 
-            .replace(/\[(.*?)\]\(.*?\)/g, '$1') 
-            .replace(/\n{2,}/g, '\n'); 
+            .replace(/([*_~#`>|])/g, '')
+            .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+            .replace(/\n{2,}/g, '\n');
 
         const levelMatch = plainTextResult.match(/(?:Level|level):\s*(.+)/);
-        const level = levelMatch ? levelMatch[1].trim() : 'Unknown';
+        const level = levelMatch && levelMatch[1].trim();
+        const answerMatch = plainTextResult.match(/Answer:\s*(.*)/s);
 
         const resultDiv = createElement(
             'div',
             'ocr-result',
-            `<p class="answer-heading">ANSWER <span class="level">${level}</span></p>
-         <p>${plainTextResult.split(/(?:Level|level):/)[0]}</p>`,
+            `<p class="answer-heading"><span></span> ${level ? `<span class="level">${level}</span>` : ''}</p>
+                <p>${answerMatch ? answerMatch[0].replace("Answer:", '') : 'Answer not found'}</p>`,
             'ocr-result'
         );
+
         main.appendChild(resultDiv);
     }
 
@@ -130,10 +166,11 @@ const handleSubmitQuestion = async () => {
     renderPopup(null, ocrResult, isSubmitting, isScanning, ocrProgress);
 
     try {
+        console.log(modelCount)
         const response = await fetch(apiUri, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question }),
+            body: JSON.stringify({ question, model_count: modelCount }),
         });
 
         const data = await response.json();
@@ -147,17 +184,17 @@ const handleSubmitQuestion = async () => {
         console.error("Error submitting question:", error);
     } finally {
         isSubmitting = false;
-        renderPopup(null, ocrResult, isSubmitting, isScanning, ocrProgress); 
+        renderPopup(null, ocrResult, isSubmitting, isScanning, ocrProgress);
     }
 };
 
 
 const createPopupContainer = (position) => {
-
     if (popupContainer) {
         document.body.removeChild(popupContainer);
     }
-
+    
+    if (!isAllowedPopupContainer) return;
     console.log(position)
     const correctedX = position.x + window.scrollX;
     const correctedY = position.y + window.scrollY - 150;
@@ -191,8 +228,8 @@ chrome.runtime.onMessage.addListener((message) => {
         const { answer } = message;
         console.log(answer)
         ocrResult = answer
-        const defaultPosition = { x: 910, y: 223 }; 
-        
+        const defaultPosition = { x: 910, y: 223 };
+
         if (!popupContainer) {
             createPopupContainer(defaultPosition);
         }
@@ -200,6 +237,20 @@ chrome.runtime.onMessage.addListener((message) => {
         renderPopup(defaultPosition, answer, isSubmitting, isScanning, ocrProgress);
     } else if (message.action === 'OCR_PROGRESS') {
         isScanning = true;
+    } else if (message.action === 'SHOW_POPUP_CONTAINER') {
+        // console.log("SHOW_POPUP_CONTAINER") // required tabs query
+        isAllowedPopupContainer = true;
+        const { answer } = message;
+        const defaultPosition = { x: 910, y: 223 };
+        createPopupContainer(defaultPosition);
+        renderPopup(defaultPosition, answer, isSubmitting, isScanning, ocrProgress);
+    } else if (message.action === 'OCR_TO_TEXT') {
+        const { image } = message;
+        console.log("coming from backrgound")
+        ocr_toText(image).then(text => {
+            console.log(text)
+            chrome.runtime.sendMessage({ action: 'OCR_RESULT2', text, image });
+        })
     }
 });
 
@@ -286,13 +337,13 @@ const handleMouseMove = (e) => {
 const createBubble = (position) => {
     const bubble = createElement('div', 'bubble_homeworkai');
     bubble.style.position = 'fixed';
-    bubble.style.backgroundColor = 'white'; 
-    bubble.style.border = '3px solid #6c5ce7'; 
+    bubble.style.backgroundColor = 'white';
+    bubble.style.border = '3px solid #6c5ce7';
     bubble.style.borderRadius = '50%';
-    bubble.style.width = '13px'; 
-    bubble.style.height = '13px'; 
-    bubble.style.zIndex = '10002'; 
-    bubble.style.pointerEvents = 'none'; 
+    bubble.style.width = '13px';
+    bubble.style.height = '13px';
+    bubble.style.zIndex = '10002';
+    bubble.style.pointerEvents = 'none';
 
     bubble.style.left = `${position.x}px`;
     bubble.style.top = `${position.y}px`;
@@ -321,7 +372,7 @@ const updateBubbles = () => {
     });
 };
 
-const deleteBubbles = () => { 
+const deleteBubbles = () => {
     const existingBubbles = document.querySelectorAll('.bubble_homeworkai');
     existingBubbles.forEach(bubble => bubble.remove());
 }
@@ -349,11 +400,11 @@ const handleMouseUp = async (e) => {
 
     const popupPosition = { x: e.clientX, y: e.clientY };
 
-    const MIN_WIDTH = 10; 
-    const MIN_HEIGHT = 10; 
+    const MIN_WIDTH = 10;
+    const MIN_HEIGHT = 10;
 
     if (selectionBox.width < MIN_WIDTH || selectionBox.height < MIN_HEIGHT) {
-        const overlay = document.querySelector('.ocr-overlay');
+        let overlay = document.querySelector('.ocr-overlay');
         if (overlay) {
             document.body.removeChild(overlay);
         }
@@ -361,10 +412,11 @@ const handleMouseUp = async (e) => {
             document.body.removeChild(selectionElement);
             selectionElement = null;
         }
-        return; 
-    }   
+        chrome.runtime.sendMessage({ action: 'SET_IS_SCANNING', isScanning: false });
+        return;
+    }
 
-    const overlay = document.querySelector('.ocr-overlay');
+    let overlay = document.querySelector('.ocr-overlay');
     if (overlay) {
         document.body.removeChild(overlay);
         createPopupContainer(popupPosition);
@@ -402,6 +454,9 @@ const handleMouseUp = async (e) => {
                     selectionBox.width, selectionBox.height
                 );
 
+                console.log(canvas.toDataURL())
+                chrome.runtime.sendMessage({ action: 'CANVAS_IMAGE2', image: canvas.toDataURL() });
+
                 const { data: { text } } = await Tesseract.recognize(canvas.toDataURL(), 'eng', {
                     logger: (m) => {
                         if (m.status === 'recognizing text') {
@@ -414,15 +469,19 @@ const handleMouseUp = async (e) => {
 
                 // Here we render the popup with the tick and cross
                 // renderPopupWithOptions(popupPosition, text);
+                console.log(modelCount)
                 const response = await fetch(apiUri, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: text }),
+                    body: JSON.stringify({ question: text, model_count: modelCount }),
                 });
 
                 const data = await response.json();
                 const answer = data.answer || 'No answer found.';
-                displayAnswerContainer(answer, popupPosition);
+
+                chrome.runtime.sendMessage({ action: 'SHOW_ANSWER2', answer });
+                chrome.runtime.sendMessage({ action: 'SHOW_ANSWER', answer });
+                if (isAllowPopupContainer) displayAnswerContainer(answer, popupPosition);
 
             };
 
@@ -449,11 +508,11 @@ const renderPopupWithOptions = (position, ocrText) => {
 
     tickButton.addEventListener('click', () => {
         handleSubmitQuestion(ocrText);
-        cleanUp(); 
+        cleanUp();
     });
 
     crossButton.addEventListener('click', () => {
-        cleanUp(); 
+        cleanUp();
         handleStartSelection();
     });
 
