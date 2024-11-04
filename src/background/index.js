@@ -94,3 +94,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    chrome.runtime.reload();
+  }
+});

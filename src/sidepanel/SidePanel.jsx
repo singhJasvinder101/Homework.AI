@@ -32,12 +32,19 @@ export const SidePanel = () => {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [modelCount, setModelCount] = useState(1);
+  const bottomRef = useRef(null)
 
   const processingRef = useRef(false);
   const dragCounter = useRef(0);
   // const apiUri = 'https://op-answers.vercel.app/generate_answer';
   // const apiUri = 'http://127.0.0.1:5000/generate_answer'
   const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
+
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollTop = bottomRef.current.scrollHeight;
+    }
+  }, [messages]);
 
 
   useEffect(() => {
@@ -328,7 +335,7 @@ export const SidePanel = () => {
         </div>
       </header>
       <main className="popup-content">
-        <div className="message-area">
+        <div ref={bottomRef} className="message-area">
           {messages.map((message, index) => (
             <Message className={message.role === "ai" ? "ai" : "user"} key={`${message.role}-${index}`} message={message} />
           ))}
@@ -374,7 +381,7 @@ export const SidePanel = () => {
                 id="upload-image"
                 disabled={isProcessingImage || isSubmitting}
               />
-            <Tooltip content='Delete Chat' >
+            <Tooltip content='Add Image' >
               <button className="action-button" >
                 <label htmlFor="upload-image" className="action-button">
                   <Images className="icon" />

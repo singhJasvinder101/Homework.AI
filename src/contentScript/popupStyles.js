@@ -1,3 +1,4 @@
+const popupStyles = `
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
 
 :root {
@@ -71,7 +72,7 @@
   overflow: hidden !important;
   padding: 24px !important;
   z-index: 10000000000 !important;
-  width: 340px !important;
+  width: 300px !important;
   color: black !important;
   max-height: 350px !important;
   overflow-y: scroll !important;
@@ -147,10 +148,10 @@
 .bubble_homeworkai {
     position: absolute;
     width: 20px;
-    height: 20px; 
-    border: 3px solid #6c5ce7; 
+    height: 20px;
+    border: 3px solid #6c5ce7;
     border-radius: 50%;
-    background-color: transparent; 
+    background-color: transparent;
     z-index: 1000;
 }
 
@@ -245,3 +246,7 @@
 .spin {
   animation: spin 1s linear infinite;
 }
+
+`
+
+export default popupStyles;
