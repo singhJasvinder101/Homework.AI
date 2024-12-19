@@ -31,31 +31,6 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
     return response
 
-def llama_response(question: str) -> str:
-    try:
-        llm = ChatGroq(
-            model="llama-3.1-70b-versatile",
-            temperature=0.95,
-            api_key=llama_key
-        )
-
-        prompt = f"""
-        Please analyze the question below and perform the following:
-        - Identify if calculations are involved; if so, solve accurately and verify results.
-        - Provide the answer in this format: Answer: [Correct Option] - [Option Name].
-        - Also, return the level of the question in this format: Level: [Level].
-        - For non-question input, respond appropriately.
-
-        Example:
-        Answer: A - Option Name
-
-        Question: {question}
-        """
-        response = llm.invoke(prompt)
-        return response.content.strip()
-    except Exception as e:
-        print(f"Error in llama_response: {e}")
-        return "Error processing your question."
 
 def gemini_response(question: str) -> str:
     prompt = f"""
@@ -139,7 +114,7 @@ def generate_answer():
         elif model_count == 2:
             response = gemini_response(question)
         else:
-            response = llama_response(question)
+            response = gemini_response(question)
             
         print(model_count)
 
