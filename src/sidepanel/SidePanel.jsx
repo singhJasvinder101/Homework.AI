@@ -55,6 +55,8 @@ export const SidePanel = () => {
     });
   }, []);
 
+  console.log(modelCount)
+
   const handleDragEnter = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
