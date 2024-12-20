@@ -3,7 +3,7 @@
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'OCR_RESULT') {
-    // console.log('Extracted Text:', message.text);
+    console.log('Extracted Text:', message.text);
   }
 });
 

@@ -375,6 +375,7 @@ h1 {
   margin-right: 0.5rem;
   cursor: pointer;
   color: inherit;
+  position: relative !important;
 }
 
 .dark-mode .action-button {

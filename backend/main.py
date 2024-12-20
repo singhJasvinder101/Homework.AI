@@ -4,6 +4,7 @@ from flask_cors import CORS  # type: ignore
 from dotenv import load_dotenv  # type: ignore
 import google.generativeai as genai  # type: ignore
 from openai import OpenAI
+from g4f.client import Client
 
 load_dotenv()
 
@@ -19,6 +20,7 @@ client = OpenAI(
     base_url="https://models.inference.ai.azure.com",
     api_key=chatgpt_key,
 )
+gpt_client = Client()
 
 @app.route('/', methods=['GET'])
 def hello():
@@ -34,14 +36,19 @@ def add_cors_headers(response):
 
 def gemini_response(question: str) -> str:
     prompt = f"""
-    Please analyze the question below and perform the following:
-    - Identify if calculations are involved; if so, solve accurately and verify results.
-    - Provide the answer in this format: Answer: [Correct Option] - [Option Name].
-    - Also, return the level of the question in this format: Level: [Level].
-    - For non-question input, respond appropriately.
+    Please respond to the following input thoughtfully and empathetically:
+    - If it is a question, analyze and solve it accurately.
+    - If calculations are involved, solve and verify results.
+    - For ambiguous inputs, provide helpful guidance or a clarifying question.
+    - Incase you are not getting the question correctly or option ask the user to "scan or copy-paste the question again".
+    - for mathematicall question do not use latex format.
+    - For non-questions, respond kindly and encouragingly to make the user feel supported.
+    - Always be humble and polite in your response.
 
-    Example:
+
+    response format for a question must be like this:
     Answer: A - Option Name
+    Level: Easy
 
     Question: {question}
     """
@@ -61,9 +68,10 @@ def gemini_response(question: str) -> str:
         return response.text.strip()
     except Exception as e:
         print(f"Error in gemini_response: {e}")
-        return "Error processing your question."
+        "Something went wrong. Please try again later or try with different Ai using switch AI Button"
 
 def chatgpt_response(question: str) -> str:
+    # print(question)
     try:
         prompt_template = f"""
         Please respond to the following input thoughtfully and empathetically:
@@ -71,12 +79,14 @@ def chatgpt_response(question: str) -> str:
         - If calculations are involved, solve and verify results.
         - For ambiguous inputs, provide helpful guidance or a clarifying question.
         - Incase you are not getting the question correctly or option ask the user to "scan or copy-paste the question again".
+        - for mathematicall question do not use latex format.
         - For non-questions, respond kindly and encouragingly to make the user feel supported.
         - Always be humble and polite in your response.
 
-        Example for a question:
-        Answer: A - Option Name
-        Level: Easy
+    
+        In Last line write the final answer and the level in this format:
+        Answer: your final answer
+        Level: (easy, medium, hard)
 
         Example for non-question:
         "Thank you for reaching out! How can I assist you further?"
@@ -84,7 +94,7 @@ def chatgpt_response(question: str) -> str:
         Input: {question}
         """
 
-        response = client.chat.completions.create(
+        response = gpt_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "You are a polite and helpful assistant."},
                 {"role": "user", "content": prompt_template}
@@ -94,13 +104,23 @@ def chatgpt_response(question: str) -> str:
             max_tokens=4096,
             top_p=1
         )
-        return response.choices[0].message.content.strip()
+        
+        return response.choices[0].message.content
     except Exception as e:
+        print(e)
         print(f"Error in chatgpt_response: {e}")
-        return "I'm sorry, I couldn't process your input. Please try again!"
+        return "Something went wrong. Please try again later or try with different Ai using switch AI Button"
 
 @app.route('/generate_answer', methods=['POST'])
 def generate_answer():
+    print("generate_answer API hit")
+    data = request.json
+    print("Request Data:", data)
+
+    if not data:
+        print("No data received in the request")
+        return jsonify({'error': 'Invalid request data'}), 400
+    
     data = request.json
     question = data.get('question')
     model_count = data.get('model_count')
@@ -110,11 +130,11 @@ def generate_answer():
 
     try:
         if model_count == 1:
-            response = chatgpt_response(question)
+            response = gemini_response(question)
         elif model_count == 2:
-            response = gemini_response(question)
+            response = chatgpt_response(question)
         else:
-            response = gemini_response(question)
+            response = chatgpt_response(question)
             
         print(model_count)
 

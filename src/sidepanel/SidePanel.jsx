@@ -5,6 +5,7 @@ import Tesseract from 'tesseract.js';
 import useTypewriter from '../hooks/useTypewriter';
 import Markdown from 'react-markdown';
 import Tooltip from '../components/Tooltip/Tooltip';
+import Badge from '../components/Badge/Badge';
 
 
 const Message = React.memo(({ message }) => {
@@ -48,12 +49,13 @@ export const SidePanel = () => {
 
 
   useEffect(() => {
-    chrome.storage.sync.get('modelCount', (data) => {
-      if (data.modelCount !== undefined) {
-        setModelCount(data.modelCount);
-      }
+    chrome.storage.local.get(["modelCount"]).then((result) => {
+      const count = result.modelCount || 1; // Default to 1
+      console.log("Fetched modelCount:", count);
+      setModelCount(count);
     });
   }, []);
+
 
   console.log(modelCount)
 
@@ -300,15 +302,15 @@ export const SidePanel = () => {
     borderRadius: '8px',
     background: 'rgba(0, 0, 0, 0.7)',
   };
-  chrome.storage.local.set({ modelCount });
 
   const handleChangeAi = useCallback(() => {
     const newModelCount = modelCount === 1 ? 2 : 1;
     setModelCount(newModelCount);
-
-    // chrome.storage.sync.set({ modelCount: newModelCount });
-    chrome.storage.local.set({ modelCount: newModelCount });
+    chrome.storage.local.set({ modelCount: newModelCount }).then(() => {
+      console.log("modelCount updated to:", newModelCount);
+    });
   }, [modelCount]);
+
 
   useEffect(() => {
     const closeTimeout = setTimeout(() => {
@@ -374,18 +376,18 @@ export const SidePanel = () => {
                 <FilePlus className="icon" />
               </button>
             </Tooltip>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="action-button"
-                style={{ display: 'none' }}
-                id="upload-image"
-                disabled={isProcessingImage || isSubmitting}
-              />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="action-button"
+              style={{ display: 'none' }}
+              id="upload-image"
+              disabled={isProcessingImage || isSubmitting}
+            />
             <Tooltip content='Add Image' >
               <button className="action-button" >
-                <label htmlFor="upload-image" className="action-button">
+                <label htmlFor="upload-image" className="">
                   <Images className="icon" />
                 </label>
               </button>
@@ -397,6 +399,7 @@ export const SidePanel = () => {
             </Tooltip>
             <Tooltip content='Switch AI' >
               <button onClick={handleChangeAi} className="action-button">
+                <Badge>{modelCount === 1 ? '1' : '2'}</Badge>
                 <ArrowLeftRight className="icon" />
               </button>
             </Tooltip>

@@ -131,14 +131,16 @@ const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting
             .replace(/\[(.*?)\]\(.*?\)/g, '$1')
             .replace(/\n{2,}/g, '\n');
 
-        const levelMatch = plainTextResult.match(/(?:Level|level):\s*(.+)/);
-        const level = levelMatch && levelMatch[1].trim();
-        const answerMatch = plainTextResult.match(/Answer:\s*(.*)/s);
+        const answerMatch = plainTextResult.match(/Answer:\s*(.+?)(?:\n|$)/i);
+        const levelMatch = plainTextResult.match(/(?:Level|level):\s*(.+?)(?:\n|$)/i)
+
+        console.log(answerMatch)
+        console.log(levelMatch)
 
         const resultDiv = createElement(
             'div',
             'ocr-result',
-            `<p class="answer-heading"><span></span> ${level ? `<span class="level">${level}</span>` : ''}</p>
+            `<p class="answer-heading"><span></span> ${levelMatch ? `<span class="level">${levelMatch}</span>` : ''}</p>
                 <p>${answerMatch ? answerMatch[0].replace("Answer:", '') : 'Answer not found'}</p>`,
             'ocr-result'
         );
