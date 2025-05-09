@@ -8,8 +8,8 @@ import { cameraIcon, sendIcon } from '../components/icons/icons';
 
 
 // const apiUri = 'https://op-answers.vercel.app/generate_answer'
-const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
-// const apiUri = 'http://127.0.0.1:5000/generate_answer'
+// const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
+const apiUri = 'http://127.0.0.1:5000/generate_answer'
 let popupContainer = null;
 
 let isScanning = false;
@@ -167,7 +167,7 @@ const handleSubmitQuestion = async () => {
         const response = await fetch(apiUri, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question, model_count: modelCount }),
+            body: JSON.stringify({ question }),
         });
 
         const data = await response.json();
