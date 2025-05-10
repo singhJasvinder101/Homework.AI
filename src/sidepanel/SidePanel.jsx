@@ -23,8 +23,9 @@ ${parsedContent?.explanation ? `**Explanation**: ${parsedContent.explanation}\n`
 ${parsedContent?.solution ? `**Solution**: ${parsedContent.solution}\n` : '\n'}
 ${parsedContent?.difficulty_level ? `**Difficulty**: ${parsedContent.difficulty_level}\n` : '\n'}
 ${parsedContent?.solution_steps && parsedContent.solution_steps.length
-          ? '**Steps**:\n' + parsedContent.solution_steps.map(step => `- ${step}`).join('\n')
-          : ''}
+? '**Steps**:\n' + parsedContent.solution_steps.map(step => `- ${step}`).join('\n')
+: ''}
+${parsedContent?.closing_note ? `${parsedContent.closing_note}\n` : '\n'}
     `)
 
     console.log(content)
