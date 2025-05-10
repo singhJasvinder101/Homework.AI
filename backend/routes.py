@@ -23,10 +23,10 @@ def register_routes(app, api: 'Api', config: Config):
     @ns.route('/health')
     class HealthCheck(Resource):
         def get(self):
-            return jsonify({
+            return {
                 'status': 'healthy',
                 'request_id': str(uuid4())
-            })
+            }
 
     @ns.route('/generate_answer')
     class GenerateAnswer(Resource):
@@ -39,27 +39,28 @@ def register_routes(app, api: 'Api', config: Config):
             data = request.get_json(silent=True)
             if not data:
                 logger.warning("Invalid request data", request_id=request_id)
-                return jsonify({
+                return {
                     'error': 'Invalid request data',
                     'request_id': request_id
-                }), 400
+                }, 400
 
             question = data.get('question')
             session_id = data.get('session_id')
 
             if not question:
                 logger.warning("No question provided", request_id=request_id)
-                return jsonify({
+                return {
                     'error': 'No question provided',
                     'request_id': request_id
-                }), 400
+                }, 400
 
             if not session_id or not session_manager.session_exists(session_id):
                 session_id = homework_ai.start_session()
                 logger.info("Created new session", session_id=session_id, request_id=request_id)
 
             response = homework_ai.generate_response(session_id, question)
-            return jsonify(response)
+            logger.info("message sent by AI", response=response, request_id=request_id)
+            return response
 
     @ns.route('/chat_history/<string:session_id>')
     class ChatHistory(Resource):
@@ -70,14 +71,14 @@ def register_routes(app, api: 'Api', config: Config):
 
             if not session_manager.session_exists(session_id):
                 logger.warning("Invalid session ID", request_id=request_id, session_id=session_id)
-                return jsonify({
+                return {
                     'error': 'Invalid session ID',
                     'request_id': request_id
-                }), 404
+                }, 404
 
             history = session_manager.get_all_chats(session_id)
-            return jsonify({
+            return {
                 'session_id': session_id,
                 'history': history,
                 'request_id': request_id
-            })
+            }

@@ -5,11 +5,9 @@ import './content.css';
 import '../components/AnswerPopup/index.css';
 import { cameraIcon, sendIcon } from '../components/icons/icons';
 
-
-
 // const apiUri = 'https://op-answers.vercel.app/generate_answer'
 // const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
-const apiUri = 'http://127.0.0.1:5000/generate_answer'
+const apiUri = 'http://127.0.0.1:5000/api/generate_answer'
 let popupContainer = null;
 
 let isScanning = false;
@@ -22,17 +20,26 @@ let backgroundAnswer = false;
 let isAllowPopupContainer = false;
 let isAllowedPopupContainer = false;
 let modelCount;
+let sessionId = null; // Store session_id for context
 
-
-
-chrome.storage.local.get(['modelCount']).then((result) => {
+// Load modelCount and sessionId from chrome.storage.local
+chrome.storage.local.get(['modelCount', 'sessionId']).then((result) => {
     modelCount = result.modelCount || 1;
-    console.info(`Model count retrieved: ${modelCount}`);
-})
+    sessionId = result.sessionId || null;
+    console.info(`Model count retrieved: ${modelCount}, Session ID: ${sessionId}`);
+});
+
+// Listen for changes to modelCount and sessionId
 chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes.modelCount) {
-        modelCount = changes.modelCount.newValue;
-        console.info(`Model count updated to: ${modelCount}`);
+    if (namespace === 'local') {
+        if (changes.modelCount) {
+            modelCount = changes.modelCount.newValue;
+            console.info(`Model count updated to: ${modelCount}`);
+        }
+        if (changes.sessionId) {
+            sessionId = changes.sessionId.newValue;
+            console.info(`Session ID updated to: ${sessionId}`);
+        }
     }
 });
 
@@ -48,7 +55,7 @@ const createElement = (tag, className, content = '', id) => {
     return element;
 };
 
-const ocr_toText = async (image) => { 
+const ocr_toText = async (image) => {
     const { data: { text } } = await Tesseract.recognize(image, 'eng', {
         logger: (m) => {
             if (m.status === 'recognizing text') {
@@ -81,10 +88,9 @@ const handleCross = (popupContainer) => {
         popupContainer.classList.add('closing');
         setTimeout(cleanUp, 500);
     });
-
 }
 
-const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting = false, isScanning = false, ocrProgress = 0) => {
+const renderPopup = (position = { x: 910, y: 223 }, apiData = null, isSubmitting = false, isScanning = false, ocrProgress = 0) => {
     if (!popupContainer) return;
     isRendered = true;
 
@@ -110,7 +116,6 @@ const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting
     submitButton.disabled = isSubmitting;
     submitButton.addEventListener('click', handleSubmitQuestion);
 
-
     submitButton.appendChild(sendIcon);
 
     inputContainer.appendChild(input);
@@ -125,26 +130,32 @@ const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting
     main.appendChild(inputContainer);
     main.appendChild(ocrButton);
 
-    if (ocrResult || backgroundAnswer) {
-        const plainTextResult = ocrResult
-            .replace(/([*_~#`>|])/g, '')
-            .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-            .replace(/\n{2,}/g, '\n');
-
-        const answerMatch = plainTextResult.match(/Answer:\s*(.+?)(?:\n|$)/i);
-        const levelMatch = plainTextResult.match(/(?:Level|level):\s*(.+?)(?:\n|$)/i)
-
-        console.log(answerMatch)
-        console.log(levelMatch)
+    if (apiData) {
+        // Display API response data
+        let parsedContent = apiData;
+        if (typeof apiData === 'string') {
+            try {
+                parsedContent = JSON.parse(apiData);
+            } catch (e) {
+                console.error('Failed to parse apiData:', e);
+                parsedContent = { final_answer: 'Error parsing response', solution_steps: ['Please try again'] };
+            }
+        }
 
         const resultDiv = createElement(
             'div',
             'ocr-result',
-            `<p class="answer-heading"><span></span> ${levelMatch ? `<span class="level">${levelMatch}</span>` : ''}</p>
-                <p>${answerMatch ? answerMatch[0].replace("Answer:", '') : 'Answer not found'}</p>`,
+            `
+            <p class="answer-heading">
+                <span>Answer</span>
+                ${parsedContent.difficulty_level ? `<span class="level">${parsedContent.difficulty_level}</span>` : ''}
+            </p>
+            ${parsedContent.final_answer ? `<p><strong>Final Answer:</strong> ${parsedContent.final_answer}</p>` : ''}
+            ${parsedContent.explanation ? `<p><strong>Explanation:</strong> ${parsedContent.explanation}</p>` : ''}
+            ${parsedContent.solution ? `<p><strong>Solution:</strong> ${parsedContent.solution}</p>` : ''}
+            `,
             'ocr-result'
         );
-
         main.appendChild(resultDiv);
     }
 
@@ -155,42 +166,47 @@ const renderPopup = (position = { x: 910, y: 223 }, ocrResult = '', isSubmitting
 
 const handleStartOCR = () => {
     ocrProgress = 0;
-
     chrome.runtime.sendMessage({ action: "START_OCR" });
 };
 
 const handleSubmitQuestion = async () => {
+    if (!question) return;
+
     isSubmitting = true;
-    renderPopup(null, ocrResult, isSubmitting, isScanning, ocrProgress);
+    renderPopup(null, null, isSubmitting, isScanning, ocrProgress);
 
     try {
         const response = await fetch(apiUri, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question }),
+            body: JSON.stringify({ question, session_id: sessionId }),
         });
 
         const data = await response.json();
-        const answer = data.answer || 'No answer found.';
-        ocrResult = answer;
+        console.log(response)
+        if (data.session_id && data.session_id !== sessionId) {
+            sessionId = data.session_id;
+            chrome.storage.local.set({ sessionId });
+            console.info(`Session ID updated: ${sessionId}`);
+        }
 
-        chrome.runtime.sendMessage({ action: 'SHOW_ANSWER', answer });
+        chrome.runtime.sendMessage({ action: 'SHOW_ANSWER', answer: data });
 
         question = '';
+        renderPopup(null, data, isSubmitting, isScanning, ocrProgress);
     } catch (error) {
         console.error("Error submitting question:", error);
+        renderPopup(null, { final_answer: 'Error occurred', solution_steps: ['Failed to fetch answer'] }, isSubmitting, isScanning, ocrProgress);
     } finally {
         isSubmitting = false;
-        renderPopup(null, ocrResult, isSubmitting, isScanning, ocrProgress);
     }
 };
-
 
 const createPopupContainer = (position) => {
     if (popupContainer) {
         document.body.removeChild(popupContainer);
     }
-    
+
     if (!isAllowedPopupContainer) return;
     const correctedX = position.x + window.scrollX;
     const correctedY = position.y + window.scrollY - 150;
@@ -207,8 +223,6 @@ const createPopupContainer = (position) => {
     document.body.appendChild(popupContainer);
 };
 
-
-
 // Selection Overlay logic
 let isSelecting = false;
 let startPoint = { x: 0, y: 0 };
@@ -221,7 +235,6 @@ chrome.runtime.onMessage.addListener((message) => {
         handleStartSelection();
     } else if (message.action === 'SHOW_ANSWER') {
         const { answer } = message;
-        ocrResult = answer
         const defaultPosition = { x: 910, y: 223 };
 
         if (!popupContainer) {
@@ -232,7 +245,6 @@ chrome.runtime.onMessage.addListener((message) => {
     } else if (message.action === 'OCR_PROGRESS') {
         isScanning = true;
     } else if (message.action === 'SHOW_POPUP_CONTAINER') {
-        // console.log("SHOW_POPUP_CONTAINER") // required tabs query
         isAllowedPopupContainer = true;
         const { answer } = message;
         const defaultPosition = { x: 910, y: 223 };
@@ -245,8 +257,6 @@ chrome.runtime.onMessage.addListener((message) => {
         })
     }
 });
-
-
 
 const handleStartSelection = () => {
     isSelecting = true;
@@ -324,8 +334,6 @@ const handleMouseMove = (e) => {
     updateOverlayClip();
 };
 
-
-
 const createBubble = (position) => {
     const bubble = createElement('div', 'bubble_homeworkai');
     bubble.style.position = 'fixed';
@@ -382,7 +390,6 @@ const updateSelectionElement = () => {
         updateBubbles()
     }
 };
-
 
 let isLoading = true
 const handleMouseUp = async (e) => {
@@ -446,7 +453,6 @@ const handleMouseUp = async (e) => {
                     selectionBox.width, selectionBox.height
                 );
 
-                // console.log(canvas.toDataURL())
                 chrome.runtime.sendMessage({ action: 'CANVAS_IMAGE2', image: canvas.toDataURL() });
 
                 const { data: { text } } = await Tesseract.recognize(canvas.toDataURL(), 'eng', {
@@ -459,21 +465,22 @@ const handleMouseUp = async (e) => {
 
                 chrome.runtime.sendMessage({ action: 'OCR_RESULT', text });
 
-                // Here we render the popup with the tick and cross
-                // renderPopupWithOptions(popupPosition, text);
-                console.log(modelCount)
                 const response = await fetch(apiUri, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: text, model_count: modelCount }),
+                    body: JSON.stringify({ question: text, session_id: sessionId }),
                 });
 
                 const data = await response.json();
-                const answer = data.answer || 'No answer found.';
+                if (data.session_id && data.session_id !== sessionId) {
+                    sessionId = data.session_id;
+                    chrome.storage.local.set({ sessionId });
+                    console.info(`Session ID updated: ${sessionId}`);
+                }
 
-                chrome.runtime.sendMessage({ action: 'SHOW_ANSWER2', answer });
-                chrome.runtime.sendMessage({ action: 'SHOW_ANSWER', answer });
-                if (isAllowPopupContainer) displayAnswerContainer(answer, popupPosition);
+                chrome.runtime.sendMessage({ action: 'SHOW_ANSWER2', answer: data });
+                chrome.runtime.sendMessage({ action: 'SHOW_ANSWER', answer: data });
+                if (isAllowPopupContainer) displayAnswerContainer(data, popupPosition);
 
             };
 
