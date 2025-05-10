@@ -1,45 +1,109 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './SidePanel.css';
-import { Moon, Sun, Camera, FileText, Image, Send, Trash2, Loader, Images, FilePlus, CopyMinus, ArrowLeftRight } from 'lucide-react';
+import { Moon, Sun, Camera, FileText, Image, Send, Trash2, Loader, Images, FilePlus, CopyMinus } from 'lucide-react';
 import Tesseract from 'tesseract.js';
 import useTypewriter from '../hooks/useTypewriter';
 import Markdown from 'react-markdown';
 import Tooltip from '../components/Tooltip/Tooltip';
 import Badge from '../components/Badge/Badge';
 
-
 const Message = React.memo(({ message }) => {
-  const content = message.role === 'ai' ? useTypewriter(message.content) : message.content;
+  let content = "";
+  if (message && message.role === 'assistant' && message.content) {
+    console.log(message.content, typeof message.content)
+    if (typeof message.content === 'object') {
+      message.content = JSON.stringify(message.content);
+    }
+      const parsedContent = JSON.parse(message.content);
+      content = (`
+${parsedContent?.greeting ? `${parsedContent.greeting}\n` : '\n'}
+${parsedContent?.final_answer ? `**Final Answer**: ${parsedContent.final_answer}\n` : '\n'}
+${parsedContent?.answer ? `**Answer**: ${parsedContent.answer}\n` : '\n'}
+${parsedContent?.explanation ? `**Explanation**: ${parsedContent.explanation}\n` : '\n'}
+${parsedContent?.solution ? `**Solution**: ${parsedContent.solution}\n` : '\n'}
+${parsedContent?.difficulty_level ? `**Difficulty**: ${parsedContent.difficulty_level}\n` : '\n'}
+${parsedContent?.solution_steps && parsedContent.solution_steps.length
+          ? '**Steps**:\n' + parsedContent.solution_steps.map(step => `- ${step}`).join('\n')
+          : ''}
+    `)
 
+    console.log(content)
+    
+
+  } else if (message.role === 'user') {
+    content = message.content;
+  }
+
+
+  console.log(typeof content)
   return (
     <div className={`message ${message.role}`}>
-      {content && <Markdown className="message-content">{content}</Markdown>}
+      {content && <Markdown className="message-content">
+        {
+          typeof content === 'string' ? content : JSON.stringify("")
+        }
+      </Markdown>}
       {message.image && <img src={message.image} alt="OCR Result" className="ocr-image" />}
     </div>
   );
 });
-
 
 export const SidePanel = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'ai', content: "Hi! Is there any question I can help you with?" }
+    {
+      role: 'assistant',
+      content: JSON.stringify({
+        greeting: "Hi! Is there any question I can help you with?",
+        closing_note: "Have a great day!"
+      })
+    }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [modelCount, setModelCount] = useState(1);
-  const bottomRef = useRef(null)
-
+  const [sessionId, setSessionId] = useState(null); // Store session_id
+  const bottomRef = useRef(null);
   const processingRef = useRef(false);
   const dragCounter = useRef(0);
-  // const apiUri = 'https://op-answers.vercel.app/generate_answer';
-  // const apiUri = 'http://127.0.0.1:5000/generate_answer'
-  const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
+
+  const apiUri = 'http://127.0.0.1:5000';
+
+  console.log(sessionId)
+
+  const getAllMessages = async () => {
+    const response = await fetch(apiUri + "/api/chat_history/" + sessionId, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await response.json();
+    console.log(data)
+    return data;
+  }
+  useEffect(() => {
+    // get messages
+    const fetchMessages = async () => {
+      try {
+        const response = await getAllMessages(sessionId);
+        console.log(response.history)
+        if (Array.isArray(response.history)) {
+          console.log(JSON.parse(response.history[0].content))
+          setMessages((prev) => [...response.history]);
+        }
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      }
+    };
+    fetchMessages()
+  }, [sessionId])
+
+  console.log(messages)
 
   useEffect(() => {
     if (bottomRef.current) {
@@ -47,17 +111,13 @@ export const SidePanel = () => {
     }
   }, [messages]);
 
-
   useEffect(() => {
-    chrome.storage.local.get(["modelCount"]).then((result) => {
-      const count = result.modelCount || 1; // Default to 1
-      console.log("Fetched modelCount:", count);
-      setModelCount(count);
+    // Load sessionId from chrome.storage.local
+    chrome.storage.local.get(['sessionId']).then((result) => {
+      setSessionId(result.sessionId || null);
+      console.log('Fetched sessionId:', result.sessionId);
     });
   }, []);
-
-
-  console.log(modelCount)
 
   const handleDragEnter = useCallback((e) => {
     e.preventDefault();
@@ -81,7 +141,6 @@ export const SidePanel = () => {
     e.preventDefault();
     e.stopPropagation();
   }, []);
-
 
   useEffect(() => {
     chrome.storage.sync.get('darkMode', (data) => {
@@ -107,7 +166,7 @@ export const SidePanel = () => {
           }
           break;
         case 'SHOW_ANSWER2':
-          setMessages((prev) => [...prev, { role: 'ai', content: request.answer }]);
+          setMessages((prev) => [...prev, { role: 'assistant', content: request.answer }]);
           setIsSubmitting(false);
           break;
         default:
@@ -133,13 +192,13 @@ export const SidePanel = () => {
           setMessages((prev) => [
             ...prev,
             { role: 'user', content: text },
-            { role: 'ai', content: answer }
+            { role: 'assistant', content: answer }
           ]);
         } catch (error) {
           console.error('Error processing OCR text:', error);
           setMessages((prev) => [
             ...prev,
-            { role: 'ai', content: 'Sorry, there was an error processing your image.' }
+            { role: 'assistant', content: { final_answer: 'Error processing image', solution_steps: ['Please try again'] } }
           ]);
         } finally {
           setIsSubmitting(false);
@@ -179,7 +238,7 @@ export const SidePanel = () => {
         setIsSubmitting(true);
         setMessages((prev) => [...prev, { role: 'user', content: inputMessage }]);
         const answer = await handleSubmitQuestion(inputMessage);
-        setMessages((prev) => [...prev, { role: 'ai', content: answer }]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
         setInputMessage('');
       } finally {
         setIsSubmitting(false);
@@ -194,25 +253,31 @@ export const SidePanel = () => {
 
   const handleSubmitQuestion = useCallback(async (question) => {
     try {
-      const response = await fetch(apiUri, {
+      const response = await fetch(apiUri + "/api/generate_answer", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ question, model_count: modelCount }),
+        body: JSON.stringify({ question, session_id: sessionId }),
       });
       const data = await response.json();
-      return data.answer || 'No answer found.';
+      console.log(data)
+      if (data.session_id && data.session_id !== sessionId) {
+        console.log(data)
+        setSessionId(data.session_id);
+        chrome.storage.local.set({ sessionId: data.session_id });
+        console.log('Session ID updated:', data.session_id);
+      }
+      return data;
     } catch (error) {
       console.error("Error submitting question:", error);
-      return "An error occurred. Please try again.";
+      return { final_answer: 'An error occurred', solution_steps: ['Please try again'] };
     }
-  }, [modelCount]);
+  }, [sessionId]);
 
   const handleImageUpload = useCallback((event, draggedFile = null) => {
     if (isProcessingImage || isSubmitting) return;
 
-    // let file = event.target.files[0] ?? drag_file;
     let file;
     if (draggedFile) {
       file = draggedFile;
@@ -222,9 +287,9 @@ export const SidePanel = () => {
       return;
     }
     if (!file || !file.type.startsWith('image/')) {
-      setMessages(prev => [...prev, { role: 'ai', content: "Please drop an image file." }]);
-      return
-    };
+      setMessages(prev => [...prev, { role: 'assistant', content: { final_answer: 'Please upload an image file', solution_steps: [] } }]);
+      return;
+    }
 
     setIsProcessingImage(true);
     const reader = new FileReader();
@@ -233,7 +298,6 @@ export const SidePanel = () => {
       const imageDataUrl = reader.result;
       setMessages((prev) => [...prev, { role: 'user', content: "Processing image...", image: imageDataUrl }]);
 
-      // Send to background only once
       chrome.runtime.sendMessage({
         action: 'OCR_TO_TEXT',
         image: imageDataUrl
@@ -241,7 +305,7 @@ export const SidePanel = () => {
     };
 
     reader.onerror = () => {
-      setMessages((prev) => [...prev, { role: 'ai', content: "Error processing image. Please try again." }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: { final_answer: 'Error processing image', solution_steps: ['Please try again'] } }]);
       setIsProcessingImage(false);
     };
 
@@ -280,7 +344,6 @@ export const SidePanel = () => {
     }
   }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
 
-  // Add these styles to your CSS file
   const dragOverlayStyle = {
     position: 'absolute',
     top: 0,
@@ -303,25 +366,16 @@ export const SidePanel = () => {
     background: 'rgba(0, 0, 0, 0.7)',
   };
 
-  const handleChangeAi = useCallback(() => {
-    const newModelCount = modelCount === 1 ? 2 : 1;
-    setModelCount(newModelCount);
-    chrome.storage.local.set({ modelCount: newModelCount }).then(() => {
-      console.log("modelCount updated to:", newModelCount);
-    });
-  }, [modelCount]);
+  // useEffect(() => {
+  //   const closeTimeout = setTimeout(() => {
+  //     setIsClosing(true);
+  //     setTimeout(() => {
+  //       window.close();
+  //     }, 300);
+  //   }, 300000); // 5 minutes
 
-
-  useEffect(() => {
-    const closeTimeout = setTimeout(() => {
-      setIsClosing(true);
-      setTimeout(() => {
-        window.close();
-      }, 300);
-    }, 300000); // 5 minutes
-
-    return () => clearTimeout(closeTimeout);
-  }, []);
+    // return () => clearTimeout(closeTimeout);
+  // }, []);
 
   return (
     <div className={`popup-container ${darkMode ? 'dark-mode' : ''} ${isClosing ? 'closing' : ''}`}>
@@ -341,7 +395,11 @@ export const SidePanel = () => {
       <main className="popup-content">
         <div ref={bottomRef} className="message-area">
           {messages.map((message, index) => (
-            <Message className={message.role === "ai" ? "ai" : "user"} key={`${message.role}-${index}`} message={message} />
+            <Message
+              className={message.role === "assistant" ? "assistant" : "user"}
+              key={`${message.role}-${index}`}
+              message={message}
+            />
           ))}
         </div>
 
@@ -397,12 +455,6 @@ export const SidePanel = () => {
                 <Trash2 className="icon" />
               </button>
             </Tooltip>
-            <Tooltip content='Switch AI' >
-              <button onClick={handleChangeAi} className="action-button">
-                <Badge>{modelCount === 1 ? '1' : '2'}</Badge>
-                <ArrowLeftRight className="icon" />
-              </button>
-            </Tooltip>
           </div>
           <div className="input-container">
             <input
@@ -423,7 +475,7 @@ export const SidePanel = () => {
           </div>
         </div>
 
-        <footer className="footer">Powered by Homework AI</footer>
+        <footer className="footer">Powered by Homework assistant</footer>
       </main>
     </div>
   );
