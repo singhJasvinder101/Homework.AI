@@ -17,7 +17,7 @@ const Message = React.memo(({ message }) => {
       const parsedContent = JSON.parse(message.content);
       content = (`
 ${parsedContent?.greeting ? `${parsedContent.greeting}\n` : '\n'}
-${parsedContent?.final_answer ? `**Final Answer**: ${parsedContent.final_answer}\n` : '\n'}
+${parsedContent?.final_answer ? `**Answer**: ${parsedContent.final_answer}\n` : '\n'}
 ${parsedContent?.answer ? `**Answer**: ${parsedContent.answer}\n` : '\n'}
 ${parsedContent?.explanation ? `**Explanation**: ${parsedContent.explanation}\n` : '\n'}
 ${parsedContent?.solution ? `**Solution**: ${parsedContent.solution}\n` : '\n'}
@@ -72,7 +72,8 @@ export const SidePanel = () => {
   const processingRef = useRef(false);
   const dragCounter = useRef(0);
 
-  const apiUri = 'http://127.0.0.1:5000';
+  // const apiUri = 'http://127.0.0.1:5000';
+  const apiUri = 'https://homework-ai-tau.vercel.app';
 
   console.log(sessionId)
 
@@ -89,13 +90,23 @@ export const SidePanel = () => {
   }
   useEffect(() => {
     // get messages
-    const fetchMessages = async () => {
+    const fetchMessages = async (sessionId) => {
       try {
         const response = await getAllMessages(sessionId);
-        console.log(response.history)
+        console.log(response.message)
         if (Array.isArray(response.history)) {
-          console.log(JSON.parse(response.history[0].content))
-          setMessages((prev) => [...response.history]);
+          // console.log(JSON.parse(response.history[0].content))
+          setMessages(() => response.history.filter((_, idx) => idx !== 0));
+        } else if (response.message == "50 per 1 hour") {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: JSON.stringify({
+                final_answer: 'You can only send 50 request per hour. Please wait a moment and try again.',
+              }),
+            },
+          ]);
         }
       } catch (error) {
         console.error('Error fetching messages:', error);
@@ -118,7 +129,7 @@ export const SidePanel = () => {
       setSessionId(result.sessionId || null);
       console.log('Fetched sessionId:', result.sessionId);
     });
-  }, []);
+  }, [sessionId]);
 
   const handleDragEnter = useCallback((e) => {
     e.preventDefault();

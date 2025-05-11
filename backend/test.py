@@ -6,7 +6,6 @@ from uuid import uuid4
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
 @dataclass

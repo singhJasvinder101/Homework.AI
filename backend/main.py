@@ -8,24 +8,18 @@ from dotenv import load_dotenv
 from config import Config
 from routes import register_routes
 from logger_config import setup_logging
+from rate_limiter import limiter
 
 load_dotenv()
 
+
 def create_app() -> Flask:
-    """Create and configure Flask application."""
     setup_logging()
-    app = Flask(__name__)
     config = Config()
+    app = Flask(__name__)
     config.validate()
 
     CORS(app, resources={r"/*": {"origins": config.allowed_origins}})
-
-    Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=[config.rate_limit],
-        storage_uri="memory://"
-    )
 
     api = Api(
         app,
@@ -42,4 +36,5 @@ def create_app() -> Flask:
 if __name__ == '__main__':
     app = create_app()
     config = Config()
+    limiter.init_app(app)
     app.run(debug=config.debug, host=config.host, port=config.port)

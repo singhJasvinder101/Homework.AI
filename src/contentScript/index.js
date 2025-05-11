@@ -6,8 +6,8 @@ import '../components/AnswerPopup/index.css';
 import { cameraIcon, sendIcon } from '../components/icons/icons';
 
 // const apiUri = 'https://op-answers.vercel.app/generate_answer'
-// const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
-const apiUri = 'http://127.0.0.1:5000/api/generate_answer'
+const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
+// const apiUri = 'http://127.0.0.1:5000/api/generate_answer'
 let popupContainer = null;
 
 let isScanning = false;
@@ -150,7 +150,7 @@ const renderPopup = (position = { x: 910, y: 223 }, apiData = null, isSubmitting
                 <span>Answer</span>
                 ${parsedContent.difficulty_level ? `<span class="level">${parsedContent.difficulty_level}</span>` : ''}
             </p>
-            ${parsedContent.final_answer ? `<p><strong>Final Answer:</strong> ${parsedContent.final_answer}</p>` : ''}
+            ${parsedContent.final_answer ? `<p><strong>Answer:</strong> ${parsedContent.final_answer}</p>` : ''}
             ${parsedContent.explanation ? `<p><strong>Explanation:</strong> ${parsedContent.explanation}</p>` : ''}
             ${parsedContent.solution ? `<p><strong>Solution:</strong> ${parsedContent.solution}</p>` : ''}
             `,

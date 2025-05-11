@@ -96,6 +96,12 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
-    chrome.runtime.reload();
+    chrome.tabs.query({}, function (tabs) {
+      for (let tab of tabs) {
+        if (tab.id && tab.url && tab.url.startsWith("http")) {
+          chrome.tabs.reload(tab.id);
+        }
+      }
+    });
   }
 });
