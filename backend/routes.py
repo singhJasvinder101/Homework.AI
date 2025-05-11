@@ -5,6 +5,7 @@ from ai_provider import HomeworkAI
 from session_manager import SessionManager
 from uuid import uuid4
 import structlog
+from rate_limiter import limiter
 
 logger = structlog.get_logger(__name__)
 
@@ -30,6 +31,8 @@ def register_routes(app, api: 'Api', config: Config):
 
     @ns.route('/generate_answer')
     class GenerateAnswer(Resource):
+        decorators = [limiter.limit("1/minute")] 
+        
         @ns.expect(generate_model)
         def post(self):
             """Generate AI response for a homework question."""
