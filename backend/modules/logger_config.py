@@ -7,7 +7,7 @@ def setup_logging():
         level=logging.INFO,
         format='%(message)s',
         handlers=[
-            RotatingFileHandler('.log', maxBytes=10000000, backupCount=5),
+            RotatingFileHandler('homework_ai.log', maxBytes=10000000, backupCount=5),
             logging.StreamHandler()
         ]
     )

@@ -6,8 +6,8 @@ import '../components/AnswerPopup/index.css';
 import { cameraIcon, sendIcon } from '../components/icons/icons';
 
 // const apiUri = 'https://op-answers.vercel.app/generate_answer'
-const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
-// const apiUri = 'http://127.0.0.1:5000/api/generate_answer'
+// const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
+const apiUri = 'http://127.0.0.1:5000/api/generate_answer'
 let popupContainer = null;
 
 let isScanning = false;
@@ -147,7 +147,7 @@ const renderPopup = (position = { x: 910, y: 223 }, apiData = null, isSubmitting
             'ocr-result',
             `
             <p class="answer-heading">
-                <span>Answer</span>
+                <span></span>
                 ${parsedContent.difficulty_level ? `<span class="level">${parsedContent.difficulty_level}</span>` : ''}
             </p>
             ${parsedContent.final_answer ? `<p><strong>Answer:</strong> ${parsedContent.final_answer}</p>` : ''}
@@ -470,7 +470,6 @@ const handleMouseUp = async (e) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ question: text, session_id: sessionId }),
                 });
-
                 const data = await response.json();
                 if (data.session_id && data.session_id !== sessionId) {
                     sessionId = data.session_id;

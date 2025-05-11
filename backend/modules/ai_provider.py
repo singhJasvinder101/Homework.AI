@@ -2,8 +2,8 @@ import json
 from typing import Dict, Any, List
 from uuid import uuid4
 import google.generativeai as genai
-from config import Config
-from session_manager import SessionManager
+from .config import Config
+from .session_manager import SessionManager
 import structlog
 
 logger = structlog.get_logger(__name__)
