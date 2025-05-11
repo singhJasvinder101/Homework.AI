@@ -33,8 +33,10 @@ def create_app() -> Flask:
 
     return app
 
+app = create_app()
+config = Config()
+limiter.init_app(app)
+handler = app 
+
 if __name__ == '__main__':
-    app = create_app()
-    config = Config()
-    limiter.init_app(app)
     app.run(debug=config.debug, host=config.host, port=config.port)
