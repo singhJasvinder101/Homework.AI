@@ -1,4 +1,4 @@
-.env
-/myenv
-temp.py
 venv
+**/__pycache__
+.pytest_cache
+.vercel

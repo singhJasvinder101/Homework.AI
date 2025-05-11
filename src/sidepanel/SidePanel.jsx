@@ -72,8 +72,8 @@ export const SidePanel = () => {
   const processingRef = useRef(false);
   const dragCounter = useRef(0);
 
-  // const apiUri = 'http://127.0.0.1:5000';
-  const apiUri = 'https://homework-ai-tau.vercel.app';
+  const apiUri = 'http://127.0.0.1:5000';
+  // const apiUri = 'https://homework-ai-tau.vercel.app';
 
   console.log(sessionId)
 
