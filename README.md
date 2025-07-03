@@ -17,6 +17,11 @@ Just drop the question → Get the explanation.
 
 It’s the **perfect learning companion** for students and professionals who value time, clarity, and focus.
 
+<br />
+
+# Demo Video
+
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/bzy9ZOeej9A/0.jpg)](http://www.youtube.com/watch?v=bzy9ZOeej9A "Homework AI Demo")
 
 <br />
 
