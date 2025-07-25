@@ -48,11 +48,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === "SHOW_ANSWER2") {
     ocrResult = message.answer || '';
     chrome.runtime.sendMessage({ action: 'SHOW_ANSWER2', answer: ocrResult });
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0].id) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "SHOW_ANSWER2", answer: ocrResult });
-      }
-    });
   } else if (message.action === 'SHOW_POPUP_CONTAINER') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0].id) {
@@ -79,6 +74,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'OCR_RESULT2') {
+    // Only send to sidepanel, don't echo back to content script
     chrome.runtime.sendMessage({ action: 'OCR_RESULT2', text: message.text, image: message.image });
   }
 });

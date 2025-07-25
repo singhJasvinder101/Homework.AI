@@ -20,16 +20,14 @@ let backgroundAnswer = false;
 let isAllowPopupContainer = false;
 let isAllowedPopupContainer = false;
 let modelCount;
-let sessionId = null; // Store session_id for context
+let sessionId = null; 
 
-// Load modelCount and sessionId from chrome.storage.local
 chrome.storage.local.get(['modelCount', 'sessionId']).then((result) => {
     modelCount = result.modelCount || 1;
     sessionId = result.sessionId || null;
     console.info(`Model count retrieved: ${modelCount}, Session ID: ${sessionId}`);
 });
 
-// Listen for changes to modelCount and sessionId
 chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace === 'local') {
         if (changes.modelCount) {
@@ -131,7 +129,6 @@ const renderPopup = (position = { x: 910, y: 223 }, apiData = null, isSubmitting
     main.appendChild(ocrButton);
 
     if (apiData) {
-        // Display API response data
         let parsedContent = apiData;
         if (typeof apiData === 'string') {
             try {
@@ -223,7 +220,6 @@ const createPopupContainer = (position) => {
     document.body.appendChild(popupContainer);
 };
 
-// Selection Overlay logic
 let isSelecting = false;
 let startPoint = { x: 0, y: 0 };
 let selectionBox = { x: 0, y: 0, width: 0, height: 0 };
@@ -396,6 +392,13 @@ const updateSelectionElement = () => {
     }
 };
 
+
+const deleteOverlayBorders = () => {
+    if (selectionElement) {
+        selectionElement.style.border = "none";
+    }
+};
+
 let isLoading = true
 const handleMouseUp = async (e) => {
     if (!isSelecting) return;
@@ -436,6 +439,9 @@ const handleMouseUp = async (e) => {
         popupContainer.style.visibility = 'visible';
     }
 
+    deleteBubbles();
+    deleteOverlayBorders();
+
     chrome.runtime.sendMessage({ action: 'CAPTURE_SCREENSHOT' }, async (response) => {
         try {
             const screenshotUrl = response.screenshotUrl;
@@ -457,8 +463,6 @@ const handleMouseUp = async (e) => {
                     0, 0,
                     selectionBox.width, selectionBox.height
                 );
-
-                chrome.runtime.sendMessage({ action: 'CANVAS_IMAGE2', image: canvas.toDataURL() });
 
                 const { data: { text } } = await Tesseract.recognize(canvas.toDataURL(), 'eng', {
                     logger: (m) => {
