@@ -45,6 +45,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "SHOW_ANSWER", answer: ocrResult });
       }
     });
+  } else if (message.action === "SHOW_ANSWER2") {
+    ocrResult = message.answer || '';
+    chrome.runtime.sendMessage({ action: 'SHOW_ANSWER2', answer: ocrResult });
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0].id) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "SHOW_ANSWER2", answer: ocrResult });
+      }
+    });
   } else if (message.action === 'SHOW_POPUP_CONTAINER') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0].id) {
@@ -54,20 +62,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === 'CLOSE_SIDEPANEL') {
     chrome.sidePanel.setOptions({ enabled: false });
     chrome.sidePanel.setOptions({ enabled: true });
-  } else if (message.action === 'OCR_TO_TEXT') { 
+  } else if (message.action === 'OCR_TO_TEXT') {
     // console.log("background yaad kita")
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0].id) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'OCR_TO_TEXT', image:message.image });
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'OCR_TO_TEXT', image: message.image });
       }
     });
   }
   if (message.action === 'SET_IS_SCANNING') {
     chrome.runtime.sendMessage({ action: 'UPDATE_SCANNING_STATUS', isScanning: message.isScanning });
   }
-  
+
   if (message.action === 'CANVAS_IMAGE') {
     chrome.runtime.sendMessage({ action: 'CANVAS_IMAGE', image: message.image });
+  }
+
+  if (message.action === 'OCR_RESULT2') {
+    chrome.runtime.sendMessage({ action: 'OCR_RESULT2', text: message.text, image: message.image });
   }
 });
 

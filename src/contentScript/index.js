@@ -6,8 +6,8 @@ import '../components/AnswerPopup/index.css';
 import { cameraIcon, sendIcon } from '../components/icons/icons';
 
 // const apiUri = 'https://op-answers.vercel.app/generate_answer'
-// const apiUri = 'https://homework-ai-tau.vercel.app/generate_answer'
-const apiUri = 'http://127.0.0.1:5000/api/generate_answer'
+const apiUri = 'https://homework-ai-tau.vercel.app/api/generate_answer'
+// const apiUri = 'http://127.0.0.1:5000/api/generate_answer'
 let popupContainer = null;
 
 let isScanning = false;
@@ -242,6 +242,11 @@ chrome.runtime.onMessage.addListener((message) => {
         }
 
         renderPopup(defaultPosition, answer, isSubmitting, isScanning, ocrProgress);
+    } else if (message.action === 'SHOW_ANSWER2') {
+        const { answer } = message;
+        if (popupContainer) {
+            renderPopup(null, answer, false, false, 0);
+        }
     } else if (message.action === 'OCR_PROGRESS') {
         isScanning = true;
     } else if (message.action === 'SHOW_POPUP_CONTAINER') {
@@ -464,6 +469,7 @@ const handleMouseUp = async (e) => {
                 });
 
                 chrome.runtime.sendMessage({ action: 'OCR_RESULT', text });
+                chrome.runtime.sendMessage({ action: 'OCR_RESULT2', text, image: canvas.toDataURL() });
 
                 const response = await fetch(apiUri, {
                     method: 'POST',
@@ -478,8 +484,10 @@ const handleMouseUp = async (e) => {
                 }
 
                 chrome.runtime.sendMessage({ action: 'SHOW_ANSWER2', answer: data });
-                chrome.runtime.sendMessage({ action: 'SHOW_ANSWER', answer: data });
-                if (isAllowPopupContainer) displayAnswerContainer(data, popupPosition);
+                isLoading = false;
+                if (popupContainer) {
+                    displayAnswerContainer(data, popupPosition);
+                }
 
             };
 

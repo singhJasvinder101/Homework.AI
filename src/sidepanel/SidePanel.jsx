@@ -14,8 +14,8 @@ const Message = React.memo(({ message }) => {
     if (typeof message.content === 'object') {
       message.content = JSON.stringify(message.content);
     }
-      const parsedContent = JSON.parse(message.content);
-      content = (`
+    const parsedContent = JSON.parse(message.content);
+    content = (`
 ${parsedContent?.greeting ? `${parsedContent.greeting}\n` : '\n'}
 ${parsedContent?.final_answer ? `**Answer**: ${parsedContent.final_answer}\n` : '\n'}
 ${parsedContent?.answer ? `**Answer**: ${parsedContent.answer}\n` : '\n'}
@@ -23,13 +23,13 @@ ${parsedContent?.explanation ? `**Explanation**: ${parsedContent.explanation}\n`
 ${parsedContent?.solution ? `**Solution**: ${parsedContent.solution}\n` : '\n'}
 ${parsedContent?.difficulty_level ? `**Difficulty**: ${parsedContent.difficulty_level}\n` : '\n'}
 ${parsedContent?.solution_steps && parsedContent.solution_steps.length
-? '**Steps**:\n' + parsedContent.solution_steps.map(step => `- ${step}`).join('\n')
-: ''}
+        ? '**Steps**:\n' + parsedContent.solution_steps.map(step => `- ${step}`).join('\n')
+        : ''}
 ${parsedContent?.closing_note ? `${parsedContent.closing_note}\n` : '\n'}
     `)
 
     console.log(content)
-    
+
 
   } else if (message.role === 'user') {
     content = message.content;
@@ -71,9 +71,8 @@ export const SidePanel = () => {
   const bottomRef = useRef(null);
   const processingRef = useRef(false);
   const dragCounter = useRef(0);
-
-  const apiUri = 'http://127.0.0.1:5000';
-  // const apiUri = 'https://homework-ai-tau.vercel.app';
+  // const apiUri = 'http://127.0.0.1:5000';
+  const apiUri = 'https://homework-ai-tau.vercel.app';
 
   console.log(sessionId)
 
@@ -198,26 +197,13 @@ export const SidePanel = () => {
         const { text, image } = request;
         processingRef.current = true;
 
-        try {
-          setIsSubmitting(true);
-          const answer = await handleSubmitQuestion(text);
-          setMessages((prev) => [
-            ...prev,
-            { role: 'user', content: text },
-            { role: 'assistant', content: answer }
-          ]);
-        } catch (error) {
-          console.error('Error processing OCR text:', error);
-          setMessages((prev) => [
-            ...prev,
-            { role: 'assistant', content: { final_answer: 'Error processing image', solution_steps: ['Please try again'] } }
-          ]);
-        } finally {
-          setIsSubmitting(false);
-          setIsScanning(false);
-          setIsProcessingImage(false);
-          processingRef.current = false;
-        }
+        // Only add the user message, the answer will come via SHOW_ANSWER2
+        setMessages((prev) => [
+          ...prev,
+          { role: 'user', content: text, image: image || null }
+        ]);
+
+        processingRef.current = false;
       }
     };
 
@@ -386,7 +372,7 @@ export const SidePanel = () => {
   //     }, 300);
   //   }, 300000); // 5 minutes
 
-    // return () => clearTimeout(closeTimeout);
+  // return () => clearTimeout(closeTimeout);
   // }, []);
 
   return (
