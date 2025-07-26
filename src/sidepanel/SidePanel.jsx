@@ -78,8 +78,13 @@ export const SidePanel = () => {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [sessionId, setSessionId] = useState(null);
+<<<<<<< HEAD
+=======
+  const [hasLoadedSession, setHasLoadedSession] = useState(false);
+>>>>>>> 1d2bb17824e700e0bf75c2653fd036733503ee76
   const bottomRef = useRef(null);
   const processingRef = useRef(false);
+  const lastMessageRef = useRef(null); 
   const dragCounter = useRef(0);
 
   // const apiUri = 'http://127.0.0.1:5000';
@@ -100,14 +105,17 @@ export const SidePanel = () => {
     return data;
   }
   useEffect(() => {
-    // get messages
-    const fetchMessages = async (sessionId) => {
+    // get messages only on initial sessionId load, not on every sessionId change
+    const fetchMessages = async (currentSessionId) => {
+      if (!currentSessionId || hasLoadedSession) return;
+
       try {
-        const response = await getAllMessages(sessionId);
+        const response = await getAllMessages(currentSessionId);
         console.log(response.message)
         if (Array.isArray(response.history)) {
           // console.log(JSON.parse(response.history[0].content))
           setMessages(() => response.history.filter((_, idx) => idx !== 0));
+          setHasLoadedSession(true);
         } else if (response.message == "50 per 1 hour") {
           setMessages((prev) => [
             ...prev,
@@ -118,13 +126,19 @@ export const SidePanel = () => {
               }),
             },
           ]);
+          setHasLoadedSession(true);
         }
       } catch (error) {
         console.error('Error fetching messages:', error);
+        setHasLoadedSession(true);
       }
     };
-    fetchMessages()
-  }, [sessionId])
+
+    // Only fetch messages on initial load
+    if (sessionId && !hasLoadedSession) {
+      fetchMessages(sessionId);
+    }
+  }, [sessionId, hasLoadedSession])
 
   console.log(messages)
 
@@ -135,11 +149,22 @@ export const SidePanel = () => {
   }, [messages]);
 
   useEffect(() => {
+<<<<<<< HEAD
     chrome.storage.local.get(['sessionId']).then((result) => {
       setSessionId(result.sessionId || null);
       console.log('Fetched sessionId:', result.sessionId);
     });
   }, [sessionId]);
+=======
+    // Load sessionId from chrome.storage.local only once
+    if (!hasLoadedSession) {
+      chrome.storage.local.get(['sessionId']).then((result) => {
+        setSessionId(result.sessionId || null);
+        console.log('Fetched sessionId:', result.sessionId);
+      });
+    }
+  }, [hasLoadedSession]); // Remove sessionId dependency to prevent infinite loop
+>>>>>>> 1d2bb17824e700e0bf75c2653fd036733503ee76
 
   const handleDragEnter = useCallback((e) => {
     e.preventDefault();
@@ -182,14 +207,31 @@ export const SidePanel = () => {
         case 'OCR_RESULT':
           setIsScanning(false);
           break;
-        case 'CANVAS_IMAGE2':
+        case 'OCR_RESULT2':
           if (!processingRef.current) {
-            setMessages((prev) => [...prev, { role: 'user', content: request.text, image: request.image || null }]);
+            const { text, image } = request;
+            const messageKey = `user-${text}-${image}`;
+
+            if (lastMessageRef.current !== messageKey) {
+              processingRef.current = true;
+              setMessages((prev) => [
+                ...prev,
+                { role: 'user', content: text, image: image || null }
+              ]);
+              lastMessageRef.current = messageKey;
+              processingRef.current = false;
+            }
           }
           break;
+        case 'CANVAS_IMAGE2':
+          break;
         case 'SHOW_ANSWER2':
-          setMessages((prev) => [...prev, { role: 'assistant', content: request.answer }]);
-          setIsSubmitting(false);
+          const answerKey = `assistant-${JSON.stringify(request.answer)}`;
+          if (lastMessageRef.current !== answerKey) {
+            setMessages((prev) => [...prev, { role: 'assistant', content: request.answer }]);
+            lastMessageRef.current = answerKey;
+            setIsSubmitting(false);
+          }
           break;
         default:
           break;
@@ -203,6 +245,7 @@ export const SidePanel = () => {
   }, []);
 
   useEffect(() => {
+<<<<<<< HEAD
     const handleOCRToText = async (request, sender, sendResponse) => {
       if (request.action === 'OCR_RESULT2' && !processingRef.current) {
         const { text, image } = request;
@@ -238,6 +281,8 @@ export const SidePanel = () => {
   }, []);
 
   useEffect(() => {
+=======
+>>>>>>> 1d2bb17824e700e0bf75c2653fd036733503ee76
     document.body.classList.toggle('dark-mode', darkMode);
     chrome.storage.sync.set({ darkMode });
   }, [darkMode]);
@@ -258,9 +303,21 @@ export const SidePanel = () => {
     if (inputMessage.trim() && !isSubmitting) {
       try {
         setIsSubmitting(true);
-        setMessages((prev) => [...prev, { role: 'user', content: inputMessage }]);
+        const userMessageKey = `user-manual-${inputMessage}`;
+
+        if (lastMessageRef.current !== userMessageKey) {
+          setMessages((prev) => [...prev, { role: 'user', content: inputMessage }]);
+          lastMessageRef.current = userMessageKey;
+        }
+
         const answer = await handleSubmitQuestion(inputMessage);
-        setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
+        const answerKey = `assistant-manual-${JSON.stringify(answer)}`;
+
+        if (lastMessageRef.current !== answerKey) {
+          setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
+          lastMessageRef.current = answerKey;
+        }
+
         setInputMessage('');
       } finally {
         setIsSubmitting(false);

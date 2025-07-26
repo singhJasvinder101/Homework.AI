@@ -81,6 +81,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'OCR_RESULT2') {
+    // Only send to sidepanel, don't echo back to content script
     chrome.runtime.sendMessage({ action: 'OCR_RESULT2', text: message.text, image: message.image });
   }
 });
