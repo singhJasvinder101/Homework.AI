@@ -10,11 +10,21 @@ import Badge from '../components/Badge/Badge';
 const Message = React.memo(({ message }) => {
   let content = "";
   if (message && message.role === 'assistant' && message.content) {
-    console.log(message.content, typeof message.content)
+    let parsedContent = null;
     if (typeof message.content === 'object') {
       message.content = JSON.stringify(message.content);
     }
-    const parsedContent = JSON.parse(message.content);
+    try {
+      parsedContent = JSON.parse(message.content);
+    } catch (e) {
+      content = message.content;
+      return (
+        <div className={`message ${message.role}`}>
+          <Markdown className="message-content">{content}</Markdown>
+          {message.image && <img src={message.image} alt="OCR Result" className="ocr-image" />}
+        </div>
+      );
+    }
     content = (`
 ${parsedContent?.greeting ? `${parsedContent.greeting}\n` : '\n'}
 ${parsedContent?.final_answer ? `**Answer**: ${parsedContent.final_answer}\n` : '\n'}
@@ -67,12 +77,14 @@ export const SidePanel = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [sessionId, setSessionId] = useState(null); // Store session_id
+  const [sessionId, setSessionId] = useState(null);
   const bottomRef = useRef(null);
   const processingRef = useRef(false);
   const dragCounter = useRef(0);
+
   // const apiUri = 'http://127.0.0.1:5000';
-  const apiUri = 'https://homework-ai-tau.vercel.app';
+  // const apiUri = 'https://homework-ai-tau.vercel.app';
+  const apiUri = 'https://homework-ai-backend.vercel.app';
 
   console.log(sessionId)
 
@@ -123,7 +135,6 @@ export const SidePanel = () => {
   }, [messages]);
 
   useEffect(() => {
-    // Load sessionId from chrome.storage.local
     chrome.storage.local.get(['sessionId']).then((result) => {
       setSessionId(result.sessionId || null);
       console.log('Fetched sessionId:', result.sessionId);
@@ -197,13 +208,26 @@ export const SidePanel = () => {
         const { text, image } = request;
         processingRef.current = true;
 
-        // Only add the user message, the answer will come via SHOW_ANSWER2
-        setMessages((prev) => [
-          ...prev,
-          { role: 'user', content: text, image: image || null }
-        ]);
-
-        processingRef.current = false;
+        try {
+          setIsSubmitting(true);
+          const answer = await handleSubmitQuestion(text);
+          setMessages((prev) => [
+            ...prev,
+            { role: 'user', content: text },
+            { role: 'assistant', content: answer }
+          ]);
+        } catch (error) {
+          console.error('Error processing OCR text:', error);
+          setMessages((prev) => [
+            ...prev,
+            { role: 'assistant', content: { final_answer: 'Error processing image', solution_steps: ['Please try again'] } }
+          ]);
+        } finally {
+          setIsSubmitting(false);
+          setIsScanning(false);
+          setIsProcessingImage(false);
+          processingRef.current = false;
+        }
       }
     };
 
@@ -274,6 +298,7 @@ export const SidePanel = () => {
   }, [sessionId]);
 
   const handleImageUpload = useCallback((event, draggedFile = null) => {
+    console.log("upload image")
     if (isProcessingImage || isSubmitting) return;
 
     let file;
@@ -392,7 +417,7 @@ export const SidePanel = () => {
       </header>
       <main className="popup-content">
         <div ref={bottomRef} className="message-area">
-          {messages.map((message, index) => (
+          {messages && messages.map((message, index) => (
             <Message
               className={message.role === "assistant" ? "assistant" : "user"}
               key={`${message.role}-${index}`}

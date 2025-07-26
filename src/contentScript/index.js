@@ -6,7 +6,8 @@ import '../components/AnswerPopup/index.css';
 import { cameraIcon, sendIcon } from '../components/icons/icons';
 
 // const apiUri = 'https://op-answers.vercel.app/generate_answer'
-const apiUri = 'https://homework-ai-tau.vercel.app/api/generate_answer'
+// const apiUri = 'https://homework-ai-tau.vercel.app/api/generate_answer'
+const apiUri = 'https://homework-ai-backend.vercel.app/api/generate_answer'
 // const apiUri = 'http://127.0.0.1:5000/api/generate_answer'
 let popupContainer = null;
 
@@ -131,7 +132,6 @@ const renderPopup = (position = { x: 910, y: 223 }, apiData = null, isSubmitting
     main.appendChild(ocrButton);
 
     if (apiData) {
-        // Display API response data
         let parsedContent = apiData;
         if (typeof apiData === 'string') {
             try {
@@ -258,6 +258,7 @@ chrome.runtime.onMessage.addListener((message) => {
     } else if (message.action === 'OCR_TO_TEXT') {
         const { image } = message;
         ocr_toText(image).then(text => {
+            console.log("helloooooooo")
             chrome.runtime.sendMessage({ action: 'OCR_RESULT2', text, image });
         })
     }
@@ -396,17 +397,23 @@ const updateSelectionElement = () => {
     }
 };
 
+const deleteBorders = () => {
+    if (selectionElement) {
+        selectionElement.style.border = 'none';
+        selectionElement.style.boxShadow = 'none';
+    }
+}
 let isLoading = true
 const handleMouseUp = async (e) => {
     if (!isSelecting) return;
     isSelecting = false;
     deleteBubbles();
-
+    
     const popupPosition = { x: e.clientX, y: e.clientY };
-
+    
     const MIN_WIDTH = 10;
     const MIN_HEIGHT = 10;
-
+    
     if (selectionBox.width < MIN_WIDTH || selectionBox.height < MIN_HEIGHT) {
         let overlay = document.querySelector('.ocr-overlay');
         if (overlay) {
@@ -419,7 +426,7 @@ const handleMouseUp = async (e) => {
         chrome.runtime.sendMessage({ action: 'SET_IS_SCANNING', isScanning: false });
         return;
     }
-
+    
     let overlay = document.querySelector('.ocr-overlay');
     if (overlay) {
         document.body.removeChild(overlay);
@@ -429,12 +436,15 @@ const handleMouseUp = async (e) => {
         document.body.removeChild(selectionElement);
         selectionElement = null;
     }
-
+    
     isLoading = true;
     if (popupContainer && isLoading) {
         popupContainer.innerHTML = "<h5>Loading...</h5>";
         popupContainer.style.visibility = 'visible';
     }
+    
+    deleteBubbles();
+    deleteBorders();
 
     chrome.runtime.sendMessage({ action: 'CAPTURE_SCREENSHOT' }, async (response) => {
         try {
@@ -443,7 +453,7 @@ const handleMouseUp = async (e) => {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
             img.src = screenshotUrl;
-
+            
             img.onload = async () => {
                 const canvas = document.createElement('canvas');
                 const context = canvas.getContext('2d');
@@ -469,7 +479,7 @@ const handleMouseUp = async (e) => {
                 });
 
                 chrome.runtime.sendMessage({ action: 'OCR_RESULT', text });
-                chrome.runtime.sendMessage({ action: 'OCR_RESULT2', text, image: canvas.toDataURL() });
+                // chrome.runtime.sendMessage({ action: 'OCR_RESULT2', text, image: canvas.toDataURL() });
 
                 const response = await fetch(apiUri, {
                     method: 'POST',

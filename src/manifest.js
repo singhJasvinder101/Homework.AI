@@ -30,7 +30,7 @@ export default defineManifest({
       matches: [
         "<all_urls>"
       ],
-      all_frames: true,
+      all_frames: false,
       js: ['src/contentScript/index.js'],
     },
   ],

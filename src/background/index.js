@@ -19,6 +19,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === 'OCR_RESULT') {
     chrome.action.setBadgeBackgroundColor({ color: '#00FF00' });
     chrome.action.setBadgeText({ text: '.' });
+  } else if (message.action === 'OCR_RESULT2') {
+    chrome.action.setBadgeBackgroundColor({ color: '#00FF00' });
+    chrome.action.setBadgeText({ text: '.' });
   } else if (message.action === 'OCR_ERROR') {
     chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
     chrome.action.setBadgeText({ text: 'ERR' });
@@ -47,7 +50,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
   } else if (message.action === "SHOW_ANSWER2") {
     ocrResult = message.answer || '';
-    chrome.runtime.sendMessage({ action: 'SHOW_ANSWER2', answer: ocrResult });
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0].id) {
         chrome.tabs.sendMessage(tabs[0].id, { action: "SHOW_ANSWER2", answer: ocrResult });
