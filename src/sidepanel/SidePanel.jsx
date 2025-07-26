@@ -80,7 +80,6 @@ export const SidePanel = () => {
   const [sessionId, setSessionId] = useState(null);
   const bottomRef = useRef(null);
   const processingRef = useRef(false);
-  const lastMessageRef = useRef(null); 
   const dragCounter = useRef(0);
 
   // const apiUri = 'http://127.0.0.1:5000';
@@ -101,17 +100,14 @@ export const SidePanel = () => {
     return data;
   }
   useEffect(() => {
-    // get messages only on initial sessionId load, not on every sessionId change
-    const fetchMessages = async (currentSessionId) => {
-      if (!currentSessionId || hasLoadedSession) return;
-
+    // get messages
+    const fetchMessages = async (sessionId) => {
       try {
-        const response = await getAllMessages(currentSessionId);
+        const response = await getAllMessages(sessionId);
         console.log(response.message)
         if (Array.isArray(response.history)) {
           // console.log(JSON.parse(response.history[0].content))
           setMessages(() => response.history.filter((_, idx) => idx !== 0));
-          setHasLoadedSession(true);
         } else if (response.message == "50 per 1 hour") {
           setMessages((prev) => [
             ...prev,
@@ -122,19 +118,13 @@ export const SidePanel = () => {
               }),
             },
           ]);
-          setHasLoadedSession(true);
         }
       } catch (error) {
         console.error('Error fetching messages:', error);
-        setHasLoadedSession(true);
       }
     };
-
-    // Only fetch messages on initial load
-    if (sessionId && !hasLoadedSession) {
-      fetchMessages(sessionId);
-    }
-  }, [sessionId, hasLoadedSession])
+    fetchMessages()
+  }, [sessionId])
 
   console.log(messages)
 
@@ -192,31 +182,14 @@ export const SidePanel = () => {
         case 'OCR_RESULT':
           setIsScanning(false);
           break;
-        case 'OCR_RESULT2':
-          if (!processingRef.current) {
-            const { text, image } = request;
-            const messageKey = `user-${text}-${image}`;
-
-            if (lastMessageRef.current !== messageKey) {
-              processingRef.current = true;
-              setMessages((prev) => [
-                ...prev,
-                { role: 'user', content: text, image: image || null }
-              ]);
-              lastMessageRef.current = messageKey;
-              processingRef.current = false;
-            }
-          }
-          break;
         case 'CANVAS_IMAGE2':
+          if (!processingRef.current) {
+            setMessages((prev) => [...prev, { role: 'user', content: request.text, image: request.image || null }]);
+          }
           break;
         case 'SHOW_ANSWER2':
-          const answerKey = `assistant-${JSON.stringify(request.answer)}`;
-          if (lastMessageRef.current !== answerKey) {
-            setMessages((prev) => [...prev, { role: 'assistant', content: request.answer }]);
-            lastMessageRef.current = answerKey;
-            setIsSubmitting(false);
-          }
+          setMessages((prev) => [...prev, { role: 'assistant', content: request.answer }]);
+          setIsSubmitting(false);
           break;
         default:
           break;
@@ -285,21 +258,9 @@ export const SidePanel = () => {
     if (inputMessage.trim() && !isSubmitting) {
       try {
         setIsSubmitting(true);
-        const userMessageKey = `user-manual-${inputMessage}`;
-
-        if (lastMessageRef.current !== userMessageKey) {
-          setMessages((prev) => [...prev, { role: 'user', content: inputMessage }]);
-          lastMessageRef.current = userMessageKey;
-        }
-
+        setMessages((prev) => [...prev, { role: 'user', content: inputMessage }]);
         const answer = await handleSubmitQuestion(inputMessage);
-        const answerKey = `assistant-manual-${JSON.stringify(answer)}`;
-
-        if (lastMessageRef.current !== answerKey) {
-          setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
-          lastMessageRef.current = answerKey;
-        }
-
+        setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
         setInputMessage('');
       } finally {
         setIsSubmitting(false);
