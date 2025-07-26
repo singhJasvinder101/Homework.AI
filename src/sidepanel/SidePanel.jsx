@@ -78,10 +78,6 @@ export const SidePanel = () => {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [sessionId, setSessionId] = useState(null);
-<<<<<<< HEAD
-=======
-  const [hasLoadedSession, setHasLoadedSession] = useState(false);
->>>>>>> 1d2bb17824e700e0bf75c2653fd036733503ee76
   const bottomRef = useRef(null);
   const processingRef = useRef(false);
   const lastMessageRef = useRef(null); 
@@ -149,22 +145,11 @@ export const SidePanel = () => {
   }, [messages]);
 
   useEffect(() => {
-<<<<<<< HEAD
     chrome.storage.local.get(['sessionId']).then((result) => {
       setSessionId(result.sessionId || null);
       console.log('Fetched sessionId:', result.sessionId);
     });
   }, [sessionId]);
-=======
-    // Load sessionId from chrome.storage.local only once
-    if (!hasLoadedSession) {
-      chrome.storage.local.get(['sessionId']).then((result) => {
-        setSessionId(result.sessionId || null);
-        console.log('Fetched sessionId:', result.sessionId);
-      });
-    }
-  }, [hasLoadedSession]); // Remove sessionId dependency to prevent infinite loop
->>>>>>> 1d2bb17824e700e0bf75c2653fd036733503ee76
 
   const handleDragEnter = useCallback((e) => {
     e.preventDefault();
@@ -245,7 +230,6 @@ export const SidePanel = () => {
   }, []);
 
   useEffect(() => {
-<<<<<<< HEAD
     const handleOCRToText = async (request, sender, sendResponse) => {
       if (request.action === 'OCR_RESULT2' && !processingRef.current) {
         const { text, image } = request;
@@ -281,8 +265,6 @@ export const SidePanel = () => {
   }, []);
 
   useEffect(() => {
-=======
->>>>>>> 1d2bb17824e700e0bf75c2653fd036733503ee76
     document.body.classList.toggle('dark-mode', darkMode);
     chrome.storage.sync.set({ darkMode });
   }, [darkMode]);
